@@ -144,16 +144,32 @@ function App() {
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || ''}</td>
                 <td>
-                  {e.Image && (
-                    <img
-                      src={`${e.Image}`}
-                      alt="View"
-                      width="80"
-                      style={{ borderRadius: '5px', cursor: 'pointer' }}
-                      onClick={() => window.open(`${e.Image}`, '_blank')}
-                    />
-                  )}
-                </td>
+                   {e.Image ? (
+                    <div style={{ textAlign: 'center' }}>
+                 <img
+                src={`${e.Image}`}
+                alt="Bill"
+                width="80"
+                style={{ borderRadius: '5px', display: 'block', margin: '0 auto 5px' }}
+               />
+              <button
+              style={{
+              background: 'none',
+              border: 'none',
+              color: '#007bff',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              padding: 0
+              }}
+             onClick={() => window.open(`${e.Image}`, '_blank')}
+             >
+             View
+            </button>
+           </div>
+           ) : (
+           'No Bill'
+           )}
+           </td>
                 <td>
                   <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
                 </td>
