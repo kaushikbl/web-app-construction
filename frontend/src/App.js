@@ -15,6 +15,7 @@ function App() {
   });
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
     load();
@@ -63,6 +64,7 @@ function App() {
 
       setExpenses([res.data, ...expenses]);
       setForm({ quantity: '', category: '', amount: '', notes: '', Image: null });
+      document.querySelector('input[type="file"]').value = ''; // clear file preview
     } catch (error) {
       console.error('Error adding expense:', error);
     }
@@ -143,33 +145,26 @@ function App() {
                 <td>₹{e.amount}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || ''}</td>
-                <td>
-                   {e.Image ? (
-                    <div style={{ textAlign: 'center' }}>
-                 <img
-                src={`${e.Image}`}
-                alt="Bill"
-                width="80"
-                style={{ borderRadius: '5px', display: 'block', margin: '0 auto 5px' }}
-               />
-              <button
-              style={{
-              background: 'none',
-              border: 'none',
-              color: '#007bff',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              padding: 0
-              }}
-             onClick={() => window.open(`${e.Image}`, '_blank')}
-             >
-             View
-            </button>
-           </div>
-           ) : (
-           'No Bill'
-           )}
-           </td>
+                <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
+                  {e.Image ? (
+                    <img
+                      src={e.Image}
+                      alt="Bill"
+                      style={{
+                        width: '60px',
+                        height: 'auto',
+                        cursor: 'pointer',
+                        borderRadius: '5px',
+                        transition: 'transform 0.2s'
+                      }}
+                      onClick={() => setPreviewImage(e.Image)}
+                      onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
+                      onMouseOut={e => e.target.style.transform = 'scale(1)'}
+                    />
+                  ) : (
+                    <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
+                  )}
+                </td>
                 <td>
                   <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
                 </td>
@@ -177,6 +172,35 @@ function App() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Modal Preview */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '8px'
+            }}
+          />
+        </div>
       )}
     </div>
   );

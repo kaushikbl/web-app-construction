@@ -80,3 +80,24 @@ input, select {
 .btn-delete:hover {
   background: #c82333;
 }
+
+.bill-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
+}
+.bill-thumb:hover {
+  transform: scale(1.2);
+}
+.bill-view-btn {
+  display: block;
+  margin-top: 5px;
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
