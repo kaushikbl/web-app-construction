@@ -1,0 +1,82 @@
+body {
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  background: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+input, select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.btn-add {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-add:hover {
+  background: #218838;
+}
+
+.total {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.expense-table th {
+  background: #f1f3f5;
+  text-align: left;
+  padding: 8px;
+}
+
+.expense-table td {
+  padding: 8px;
+  border-top: 1px solid #dee2e6;
+}
+
+.expense-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+}
