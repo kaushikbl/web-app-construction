@@ -11,7 +11,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: web-app-construction/backend/Dockerfile
+      dockerfile: /backend/Dockerfile
     restart: unless-stopped
     environment:
       - MONGO_URI=mongodb://mongo:27017/house_expenses
@@ -26,7 +26,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: web-app-construction/frontend/Dockerfile
+      dockerfile: /frontend/Dockerfile
     restart: unless-stopped
     ports:
       - "3000:80"   # map nginx port 80 -> localhost:3000
