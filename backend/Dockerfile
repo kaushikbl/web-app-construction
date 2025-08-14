@@ -5,11 +5,11 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm install --production
 
 # Copy the rest of the backend code
-COPY backend/ .
+COPY . .
 
 # Expose backend port
 EXPOSE 5000
