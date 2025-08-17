@@ -156,7 +156,7 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/seed/categories', async (req, res) => {
   try {
     const defaults = [
-      { name: 'Cement' },
+      { name: 'Borewell' },
       { name: 'Steel' },
       { name: 'Sand' },
       { name: 'Bricks' },
