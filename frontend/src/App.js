@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API = 'http://backend:5000';
+const API = "http://3.145.124.162:30050/api";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
