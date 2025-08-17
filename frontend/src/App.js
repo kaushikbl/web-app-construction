@@ -18,14 +18,15 @@ function App() {
   const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
-    fetch("http://3.145.124.162:30050/api/categories")
-    load();
-    loadCategories();
-  }, []);
+  fetch('http://3.145.124.162:30050/api/categories')
+    .then(res => res.json())
+    .then(data => setCategories(data))
+    .catch(err => console.error('Error loading categories:', err));
+}, []);
 
   const loadCategories = async () => {
     try {
-      const res = await axios.get(`${API}/api/categories`);
+      const res = await axios.get(`${API}/categories`);
       setCategories(res.data);
     } catch (err) {
       console.error(err);
@@ -35,7 +36,7 @@ function App() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/expenses`);
+      const res = await axios.get(`${API}/expenses`);
       setExpenses(res.data);
     } catch (err) {
       console.error(err);
