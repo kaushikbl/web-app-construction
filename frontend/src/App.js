@@ -18,6 +18,7 @@ function App() {
   const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
+    fetch("http://3.145.124.162:30050/api/categories")
     load();
     loadCategories();
   }, []);
