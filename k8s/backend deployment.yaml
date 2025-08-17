@@ -27,7 +27,8 @@ spec:
               mountPath: /app/uploads
       volumes:
         - name: uploads-storage
-          emptyDir: {}
+      persistentVolumeClaim:
+      claimName: uploads-pvc
 ---
 apiVersion: v1
 kind: Service
