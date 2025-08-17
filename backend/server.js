@@ -152,6 +152,27 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+
+app.get('/api/seed/categories', async (req, res) => {
+  try {
+    const defaults = [
+      { name: 'Cement' },
+      { name: 'Steel' },
+      { name: 'Sand' },
+      { name: 'Bricks' },
+      { name: 'Labor' }
+    ];
+
+    await Category.insertMany(defaults, { ordered: false });
+    res.json({ message: 'Categories seeded!' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 /**
  * Add Category
  */
