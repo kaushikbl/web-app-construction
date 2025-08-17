@@ -51,12 +51,13 @@ app.use('/uploads', express.static(uploadDir));
  */
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
+    const host = `${req.protocol}://${req.get('host')}`;
     const expense = new Expense({
       quantity: req.body.quantity,
       category: req.body.category,
       amount: req.body.amount,
       notes: req.body.notes || '',
-      Image: req.file ? `/uploads/${req.file.filename}` : null,
+      Image: req.file ? `${host}/uploads/${req.file.filename}` : null,
       date: new Date()
     });
     await expense.save();
@@ -66,6 +67,7 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 /**
  * Get Expenses (with filters)
@@ -100,13 +102,14 @@ app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
       const oldImagePath = path.join(__dirname, exp.Image.replace(`${req.protocol}://${req.get('host')}`, ''));
       if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
     }
-
+    
+    const host = `${req.protocol}://${req.get('host')}`;
     exp.quantity = req.body.quantity || exp.quantity;
     exp.category = req.body.category || exp.category;
     exp.amount = req.body.amount || exp.amount;
     exp.notes = req.body.notes || exp.notes;
     if (req.file) {
-      exp.Image = `/uploads/${req.file.filename}`;
+      exp.Image = `${host}/uploads/${req.file.filename}`;
     }
 
     await exp.save();
@@ -127,7 +130,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 
     // Delete image file if exists
     if (exp.Image) {
-      const imgPath = path.join(__dirname, exp.Image.replace(`${req.protocol}://${req.get('host')}`, ''));
+      const imgPath = path.join(__dirname, exp.Image.replace('/uploads', 'uploads'));
       if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
     }
 
