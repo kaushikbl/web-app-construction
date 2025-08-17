@@ -166,6 +166,34 @@ app.post('/api/categories', async (req, res) => {
   }
 });
 
+/**
+ * Seed Default Categories
+ */
+app.post('/api/seed/categories', async (req, res) => {
+  try {
+    const categories = [
+      { name: "Cement" },
+      { name: "Sand" },
+      { name: "Steel" },
+      { name: "Bricks" },
+      { name: "Tiles" },
+      { name: "Wood" },
+      { name: "Labor" },
+      { name: "Electrical" },
+      { name: "Plumbing" },
+      { name: "Miscellaneous" }
+    ];
+
+    await Category.deleteMany(); // Clear old categories
+    const inserted = await Category.insertMany(categories);
+
+    res.json({ success: true, inserted });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
