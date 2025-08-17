@@ -24,14 +24,7 @@ function App() {
     .catch(err => console.error('Error loading categories:', err));
 }, []);
 
-  const loadCategories = async () => {
-    try {
-      const res = await axios.get(`${API}/categories`);
-      setCategories(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  
 
   const load = async () => {
     setLoading(true);
@@ -82,7 +75,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>🏗 House Construction Expenses</h1>
+      <h1>Expense Dashboard</h1>
 
       <div className="form-row">
         <input
@@ -150,7 +143,7 @@ function App() {
                 <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
                   {e.Image ? (
                     <img
-                      src={e.Image}
+                      src={'http://3.145.124.162:30050${e.Image}'}
                       alt="Bill"
                       style={{
                         width: '60px',
