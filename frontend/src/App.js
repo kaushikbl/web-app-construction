@@ -60,7 +60,7 @@ function App() {
     }
 
     try {
-      const res = await axios.post(`${API}/api/expenses`, formData, {
+      const res = await axios.post(`${API}/expenses`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -74,7 +74,7 @@ function App() {
 
   const remove = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
-    await axios.delete(`${API}/api/expenses/${id}`);
+    await axios.delete(`${API}/expenses/${id}`);
     setExpenses(expenses.filter(e => e._id !== id));
   };
 
