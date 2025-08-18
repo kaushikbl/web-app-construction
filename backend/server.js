@@ -51,7 +51,7 @@ app.use('/uploads', express.static(uploadDir));
  */
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
-    const host = `${req.protocol}://${req.get('host')}`;
+    const host = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
     const expense = new Expense({
       quantity: req.body.quantity,
       category: req.body.category,
