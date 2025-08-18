@@ -12,7 +12,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /  # or remove this entirely (see note below)
 spec:
   rules:
-    - host: kaushikops.com
+    - host: www.kaushikops.com
       http:
         paths:
           - path: /
