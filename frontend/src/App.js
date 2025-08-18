@@ -143,22 +143,22 @@ function App() {
                 <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
                   {e.Image ? (
                     <img
-                      src={`http://3.145.124.162:30050${e.Image}`}
-                      alt="View"
-                      style={{
-                        width: '60px',
-                        height: 'auto',
-                        cursor: 'pointer',
-                        borderRadius: '5px',
-                        transition: 'transform 0.2s'
-                      }}
-                      onClick={() => setPreviewImage(`${e.Image}`)}
-                      onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
-                      onMouseOut={e => e.target.style.transform = 'scale(1)'}
-                    />
-                  ) : (
-                    <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
-                  )}
+                     src={`http://3.145.124.162:30050${e.Image}`}
+                     alt="View"
+                     style={{
+                     width: '60px',
+                     height: 'auto',
+                     cursor: 'pointer',
+                     borderRadius: '5px',
+                     transition: 'transform 0.2s'
+                     }}
+                     onClick={() => setPreviewImage(`http://3.145.124.162:30050${e.Image}`)}
+                     onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
+                     onMouseOut={e => e.target.style.transform = 'scale(1)'}
+                     />
+                     ) : (
+                     <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
+                    )}
                 </td>
                 <td>
                   <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
