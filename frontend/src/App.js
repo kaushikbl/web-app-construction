@@ -143,7 +143,7 @@ function App() {
                 <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
                   {e.Image ? (
                     <img
-                      src={'http://3.145.124.162:30050${e.Image}'}
+                      src={`http://3.145.124.162:30050${e.Image}`}
                       alt="Bill"
                       style={{
                         width: '60px',
