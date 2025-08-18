@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API = "http://3.145.124.162:30050/api";
+// const API = "http://3.145.124.162:30050/api";
+const API = "https://www.kaushikops.com/api";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -19,7 +20,8 @@ function App() {
 
   useEffect(() => {
     // Load categories
-  fetch('http://3.145.124.162:30050/api/categories')
+  // fetch('http://3.145.124.162:30050/api/categories')
+  fetch(`${API}/categories`)
     .then(res => res.json())
     .then(data => setCategories(data))
     .catch(err => console.error('Error loading categories:', err));
