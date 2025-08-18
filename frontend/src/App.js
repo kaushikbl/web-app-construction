@@ -144,7 +144,7 @@ function App() {
                   {e.Image ? (
                     <img
                       src={`http://3.145.124.162:30050${e.Image}`}
-                      alt="Bill"
+                      alt="View"
                       style={{
                         width: '60px',
                         height: 'auto',
@@ -152,7 +152,7 @@ function App() {
                         borderRadius: '5px',
                         transition: 'transform 0.2s'
                       }}
-                      onClick={() => (`http://3.145.124.162:30050${e.Image}`)}
+                      onClick={() => setPreviewImage(`http://3.145.124.162:30050${e.Image}`)}
                       onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
                       onMouseOut={e => e.target.style.transform = 'scale(1)'}
                     />
