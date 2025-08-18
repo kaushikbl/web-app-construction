@@ -57,7 +57,8 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
       category: req.body.category,
       amount: req.body.amount,
       notes: req.body.notes || '',
-      Image: req.file ? `${host}/uploads/${req.file.filename}` : null,
+    //  Image: req.file ? `${host}/uploads/${req.file.filename}` : null,
+      Image: req.file ? `/uploads/${req.file.filename}` : null;
       date: new Date()
     });
     await expense.save();
@@ -114,7 +115,8 @@ app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
     exp.amount = req.body.amount || exp.amount;
     exp.notes = req.body.notes || exp.notes;
     if (req.file) {
-      exp.Image = `${host}/uploads/${req.file.filename}`;
+    //  exp.Image = `${host}/uploads/${req.file.filename}`;
+      exp.Image = `/uploads/${req.file.filename}`;
     }
 
     await exp.save();
