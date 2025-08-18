@@ -18,10 +18,13 @@ function App() {
   const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
+    // Load categories
   fetch('http://3.145.124.162:30050/api/categories')
     .then(res => res.json())
     .then(data => setCategories(data))
     .catch(err => console.error('Error loading categories:', err));
+  // 👇 Load expenses from backend on app start
+    load();
 }, []);
 
   
