@@ -88,6 +88,11 @@ app.get('/api/expenses', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/', (req, res) => {
+  res.status(200).send('Backend is up');
+});
+
+
 
 /**
  * Update Expense (with optional image replacement)
