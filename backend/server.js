@@ -58,7 +58,7 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
       amount: req.body.amount,
       notes: req.body.notes || '',
     //  Image: req.file ? `${host}/uploads/${req.file.filename}` : null,
-      Image: req.file ? `/uploads/${req.file.filename}` : null;
+      Image: req.file ? `/uploads/${req.file.filename}` : null,
       date: new Date()
     });
     await expense.save();
