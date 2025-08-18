@@ -148,7 +148,7 @@ function App() {
                 <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
                   {e.Image ? (
                     <img
-                     src={`http://3.145.124.162:30050${e.Image}`}
+                     src={`https://www.kaushikops.com${e.Image}`}
                      alt="View"
                      style={{
                      width: '60px',

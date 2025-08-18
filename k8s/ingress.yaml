@@ -31,3 +31,11 @@ spec:
                 name: backend
                 port:
                   number: 5000
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5000
+
