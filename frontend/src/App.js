@@ -152,7 +152,7 @@ function App() {
                      borderRadius: '5px',
                      transition: 'transform 0.2s'
                      }}
-                     onClick={() => setPreviewImage(`http://3.145.124.162:30050${e.Image}`)}
+                     onClick={() => setPreviewImage(`${e.Image}`)}
                      onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
                      onMouseOut={e => e.target.style.transform = 'scale(1)'}
                      />
