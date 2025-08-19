@@ -38,16 +38,3 @@ spec:
         - name: uploads-storage
           persistentVolumeClaim:
             claimName: uploads-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend
-spec:
-  selector:
-    app: backend
-  ports:
-    - port: 5000
-      targetPort: 5000
-      nodePort: 30050
-  type: NodePort  
