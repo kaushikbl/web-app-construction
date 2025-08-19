@@ -55,7 +55,7 @@ spec:
                 port:
                   number: 5000
           - path: /uploads
-            athType: Prefix
+            pathType: Prefix
             backend:
               service:
                 name: backend
