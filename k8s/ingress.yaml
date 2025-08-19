@@ -50,14 +50,14 @@ spec:
           - path: /api
             pathType: Prefix
             backend:
-            service:
-              name: backend
-              port:
-                number: 5000
+              service:
+                name: backend
+                port:
+                  number: 5000
           - path: /uploads
             athType: Prefix
             backend:
-            service:
-              name: backend
-              port:
-                number: 5000            
+              service:
+                name: backend
+                port:
+                  number: 5000            
