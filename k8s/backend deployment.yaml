@@ -17,11 +17,11 @@ spec:
           image: kaushikbl/backend:BUILD_TAG
           resources:
             requests:
-              cpu: "50m"
-              memory: "64Mi"
+              cpu: "10m"
+              memory: "24Mi"
             limits:
-              cpu: "150m"
-              memory: "128Mi"
+              cpu: "50m"
+              memory: "50Mi"
           
           ports:
             - containerPort: 5000
