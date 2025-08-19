@@ -13,8 +13,32 @@ metadata:
 
 spec:
   rules:
-    - host: www.kaushikops.com
-      http:
+  - host: www.kaushikops.com
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: frontend
+              port:
+                number: 80
+        - path: /api
+          pathType: Prefix
+          backend:
+            service:
+              name: backend
+              port:
+                number: 5000
+        - path: /uploads
+          pathType: Prefix
+          backend:
+            service:
+              name: backend
+              port:
+                number: 5000
+
+  - http:
         paths:
           - path: /
             pathType: Prefix
@@ -23,12 +47,17 @@ spec:
                 name: frontend
                 port:
                   number: 80
-    - http:
-        paths:
-          - path: /
+          - path: /api
             pathType: Prefix
             backend:
-              service:
-                name: frontend
-                port:
-                  number: 80            
+            service:
+              name: backend
+              port:
+                number: 5000
+          - path: /uploads
+            athType: Prefix
+            backend:
+            service:
+              name: backend
+              port:
+                number: 5000            
