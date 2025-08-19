@@ -15,6 +15,14 @@ spec:
       containers:
         - name: backend
           image: kaushikbl/backend:BUILD_TAG
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          
           ports:
             - containerPort: 5000
           env:
@@ -22,6 +30,7 @@ spec:
               value: mongodb://mongo:27017/house_expenses
             - name: PORT
               value: "5000"
+
           volumeMounts:
             - name: uploads-storage
               mountPath: /app/uploads
