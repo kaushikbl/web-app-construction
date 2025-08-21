@@ -1,103 +1,28 @@
-body {
-  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-  background: #f8f9fa;
-  margin: 0;
-  padding: 0;
-}
+/* Existing styles ... */
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
-
-h1 {
-  margin-bottom: 20px;
-}
-
-.form-row {
+.action-buttons {
   display: flex;
-  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 15px;
+  justify-content: center;
 }
 
-input, select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  flex: 1;
-}
-
-.btn-add {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-add:hover {
-  background: #218838;
-}
-
-.total {
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.expense-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.expense-table th {
-  background: #f1f3f5;
-  text-align: left;
-  padding: 8px;
-}
-
-.expense-table td {
-  padding: 8px;
-  border-top: 1px solid #dee2e6;
-}
-
-.expense-table tr:nth-child(even) {
-  background: #f9f9f9;
-}
-
-.btn-delete {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-delete:hover {
-  background: #c82333;
-}
-
-.bill-thumb {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease;
-}
-.bill-thumb:hover {
-  transform: scale(1.2);
-}
-.bill-view-btn {
-  display: block;
-  margin-top: 5px;
+.action-btn {
   background: none;
   border: none;
-  color: #007bff;
-  text-decoration: underline;
   cursor: pointer;
+  font-size: 18px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.btn-edit {
+  color: #007bff; /* Blue */
+}
+
+.btn-delete-icon {
+  color: #dc3545; /* Red */
 }
