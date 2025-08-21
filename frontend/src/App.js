@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaEdit, FaTrash } from "react-icons/fa";
 import './App.css';
-import { FaEdit, FaTrash } from "react-icons/fa";
+
 
 // const API = "http://3.145.124.162:30050/api";
 const API = "https://www.kaushikops.com/api";
