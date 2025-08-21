@@ -3,7 +3,6 @@ import axios from 'axios';
 import { FaEdit, FaTrash } from "react-icons/fa";
 import './App.css';
 
-
 // const API = "http://3.145.124.162:30050/api";
 const API = "https://www.kaushikops.com/api";
 
@@ -204,26 +203,6 @@ function App() {
                     <FaTrash size={14} /> Delete
                   </button>
                 </td>
-             
-
-<td>
-  <div className="action-buttons">
-    <button
-      className="action-btn btn-edit"
-      onClick={() => handleEdit(e)}
-    >
-      <FaEdit />
-    </button>
-    <button
-      className="action-btn btn-delete-icon"
-      onClick={() => remove(e._id)}
-    >
-      <FaTrash />
-    </button>
-  </div>
-</td>
-
-
               </tr>
             ))}
           </tbody>
