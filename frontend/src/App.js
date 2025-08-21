@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { FaEdit, FaTrash } from "react-icons/fa";
 import './App.css';
+
 
 // const API = "http://3.145.124.162:30050/api";
 const API = "https://www.kaushikops.com/api";
@@ -16,20 +18,16 @@ function App() {
   });
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [previewImage, setPreviewImage] = useState(null); // For modal preview
+  const [previewImage, setPreviewImage] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    // Load categories
-  // fetch('http://3.145.124.162:30050/api/categories')
-  fetch(`${API}/categories`)
-    .then(res => res.json())
-    .then(data => setCategories(data))
-    .catch(err => console.error('Error loading categories:', err));
-  // 👇 Load expenses from backend on app start
+    fetch(`${API}/categories`)
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error('Error loading categories:', err));
     load();
-}, []);
-
-  
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -43,7 +41,7 @@ function App() {
     }
   };
 
-  const add = async () => {
+  const addOrUpdate = async () => {
     if (!form.quantity || !form.category || !form.amount) {
       return alert('Fill required fields');
     }
@@ -58,15 +56,26 @@ function App() {
     }
 
     try {
-      const res = await axios.post(`${API}/expenses`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      if (editingId) {
+        // update
+        const res = await axios.put(`${API}/expenses/${editingId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setExpenses(expenses.map(e => (e._id === editingId ? res.data : e)));
+        setEditingId(null);
+      } else {
+        // add
+        const res = await axios.post(`${API}/expenses`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setExpenses([res.data, ...expenses]);
+      }
 
-      setExpenses([res.data, ...expenses]);
+      // clear form
       setForm({ quantity: '', category: '', amount: '', notes: '', Image: null });
-      document.querySelector('input[type="file"]').value = ''; // clear file preview
+      document.querySelector('input[type="file"]').value = '';
     } catch (error) {
-      console.error('Error adding expense:', error);
+      console.error('Error saving expense:', error);
     }
   };
 
@@ -74,6 +83,17 @@ function App() {
     if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
     setExpenses(expenses.filter(e => e._id !== id));
+  };
+
+  const startEdit = (expense) => {
+    setEditingId(expense._id);
+    setForm({
+      quantity: expense.quantity,
+      category: expense.category,
+      amount: expense.amount,
+      notes: expense.notes,
+      Image: null // reset, user can re-upload if needed
+    });
   };
 
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -117,7 +137,9 @@ function App() {
           onChange={e => setForm({ ...form, Image: e.target.files[0] })}
         />
 
-        <button className="btn-add" onClick={add}>Add</button>
+        <button className="btn-add" onClick={addOrUpdate}>
+          {editingId ? "Update" : "Add"}
+        </button>
       </div>
 
       <div className="total">Total: ₹{total}</div>
@@ -148,26 +170,60 @@ function App() {
                 <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
                   {e.Image ? (
                     <img
-                     src={`https://www.kaushikops.com${e.Image}`}
-                     alt="View"
-                     style={{
-                     width: '60px',
-                     height: 'auto',
-                     cursor: 'pointer',
-                     borderRadius: '5px',
-                     transition: 'transform 0.2s'
-                     }}
-                     onClick={() => setPreviewImage(e.Image)}
-                     onMouseOver={e => e.target.style.transform = 'scale(1.2)'}
-                     onMouseOut={e => e.target.style.transform = 'scale(1)'}
-                     />
-                     ) : (
-                     <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
-                    )}
+                      src={`https://www.kaushikops.com${e.Image}`}
+                      alt="View"
+                      style={{
+                        width: '60px',
+                        height: 'auto',
+                        cursor: 'pointer',
+                        borderRadius: '5px',
+                        transition: 'transform 0.2s'
+                      }}
+                      onClick={() => setPreviewImage(e.Image)}
+                      onMouseOver={ev => ev.target.style.transform = 'scale(1.2)'}
+                      onMouseOut={ev => ev.target.style.transform = 'scale(1)'}
+                    />
+                  ) : (
+                    <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
+                  )}
                 </td>
-                <td>
-                  <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
+                <td className="flex gap-2">
+                  {/* Edit button */}
+                  <button
+                    onClick={() => startEdit(e)}
+                    className="flex items-center gap-1 bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
+                  >
+                    <FaEdit size={14} /> Edit
+                  </button>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={() => remove(e._id)}
+                    className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                  >
+                    <FaTrash size={14} /> Delete
+                  </button>
                 </td>
+             
+
+<td>
+  <div className="action-buttons">
+    <button
+      className="action-btn btn-edit"
+      onClick={() => handleEdit(e)}
+    >
+      <FaEdit />
+    </button>
+    <button
+      className="action-btn btn-delete-icon"
+      onClick={() => remove(e._id)}
+    >
+      <FaTrash />
+    </button>
+  </div>
+</td>
+
+
               </tr>
             ))}
           </tbody>
