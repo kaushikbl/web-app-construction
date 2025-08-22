@@ -1,0 +1,83 @@
+pipeline {
+    agent any
+    
+    environment {
+        REGISTRY_CREDENTIALS = 'docker-cred'
+        DOCKER_USER = 'kaushikbl'
+        FRONTEND_IMAGE = 'frontend'
+        BACKEND_IMAGE = 'backend'
+        MONGO_IMAGE = 'mongo'
+        AWS_REGION = 'us-east-2' 
+        EKS_CLUSTER = 'my-eks-cluster' 
+    }
+
+    stages {
+        stage('git checkout') {
+            steps {
+                git branch: 'dev', url: 'https://github.com/kaushikbl/web-app-construction.git'           }
+        }
+    
+        stage('Install Dependencies for frontend') {
+            steps {
+                dir('frontend') {
+                   sh "npm install"
+
+            }
+        }
+    }
+    
+        stage('Install Dependencies for backend') {
+            steps {
+                dir('backend') {
+                   sh "npm install"
+            }
+        }
+    }
+        
+        stage("Docker Build frontend & Push"){
+            steps{
+                script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                       buildNumber = "${BUILD_NUMBER}"
+                       dir('frontend') {
+                       sh "docker build -t ${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber} ."
+                       sh "docker push ${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}"
+                }
+            }
+        }
+      }    
+    }
+        
+        stage("Docker Build backend & Push"){
+            steps{
+                script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                       buildNumber = "${BUILD_NUMBER}"
+                       dir('backend') {
+                       sh "docker build -t ${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber} ."
+                       sh "docker push ${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}"
+                }
+            }
+        }
+      }    
+    }
+
+        stage("Deploy to EKS") {
+           steps {
+              withAWS(credentials: 'aws-cred', region: 'us-east-2') {
+                 
+                  sh """
+                    aws sts get-caller-identity
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+                    kubectl apply -f k8s
+                    kubectl set image deployment/frontend frontend=${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}
+                    kubectl set image deployment/backend backend=${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}
+                    kubectl rollout status deployment/frontend
+                    kubectl rollout status deployment/backend
+                    """
+              }
+        }
+     }
+    }
+}
+
