@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaEdit, FaTrash } from "react-icons/fa";
 import './App.css';
 
 // const API = "http://3.145.124.162:30050/api";
@@ -13,18 +12,20 @@ function App() {
     category: '',
     amount: '',
     notes: '',
-    Image: null
+    Image: null,
   });
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [editingId, setEditingId] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
+    // Load categories
     fetch(`${API}/categories`)
-      .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(err => console.error('Error loading categories:', err));
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error('Error loading categories:', err));
+
+    // Load expenses from backend on app start
     load();
   }, []);
 
@@ -40,7 +41,7 @@ function App() {
     }
   };
 
-  const addOrUpdate = async () => {
+  const add = async () => {
     if (!form.quantity || !form.category || !form.amount) {
       return alert('Fill required fields');
     }
@@ -55,44 +56,28 @@ function App() {
     }
 
     try {
-      if (editingId) {
-        // update
-        const res = await axios.put(`${API}/expenses/${editingId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setExpenses(expenses.map(e => (e._id === editingId ? res.data : e)));
-        setEditingId(null);
-      } else {
-        // add
-        const res = await axios.post(`${API}/expenses`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setExpenses([res.data, ...expenses]);
-      }
+      const res = await axios.post(`${API}/expenses`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-      // clear form
-      setForm({ quantity: '', category: '', amount: '', notes: '', Image: null });
-      document.querySelector('input[type="file"]').value = '';
+      setExpenses([res.data, ...expenses]);
+      setForm({
+        quantity: '',
+        category: '',
+        amount: '',
+        notes: '',
+        Image: null,
+      });
+      document.querySelector('input[type="file"]').value = ''; // clear file input
     } catch (error) {
-      console.error('Error saving expense:', error);
+      console.error('Error adding expense:', error);
     }
   };
 
   const remove = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
-    setExpenses(expenses.filter(e => e._id !== id));
-  };
-
-  const startEdit = (expense) => {
-    setEditingId(expense._id);
-    setForm({
-      quantity: expense.quantity,
-      category: expense.category,
-      amount: expense.amount,
-      notes: expense.notes,
-      Image: null // reset, user can re-upload if needed
-    });
+    setExpenses(expenses.filter((e) => e._id !== id));
   };
 
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -105,39 +90,36 @@ function App() {
         <input
           placeholder="Quantity"
           value={form.quantity}
-          onChange={e => setForm({ ...form, quantity: e.target.value })}
+          onChange={(e) => setForm({ ...form, quantity: e.target.value })}
         />
-
         <select
           value={form.category}
-          onChange={e => setForm({ ...form, category: e.target.value })}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
           <option value="">Select Category</option>
-          {categories.map(cat => (
-            <option key={cat._id} value={cat.name}>{cat.name}</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat.name}>
+              {cat.name}
+            </option>
           ))}
         </select>
-
         <input
           placeholder="Amount"
           type="number"
           value={form.amount}
-          onChange={e => setForm({ ...form, amount: e.target.value })}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
         />
-
         <input
           placeholder="Notes (optional)"
           value={form.notes}
-          onChange={e => setForm({ ...form, notes: e.target.value })}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
-
         <input
           type="file"
-          onChange={e => setForm({ ...form, Image: e.target.files[0] })}
+          onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
         />
-
-        <button className="btn-add" onClick={addOrUpdate}>
-          {editingId ? "Update" : "Add"}
+        <button className="btn-add" onClick={add}>
+          Add
         </button>
       </div>
 
@@ -159,14 +141,20 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {expenses.map(e => (
+            {expenses.map((e) => (
               <tr key={e._id}>
                 <td>{e.quantity}</td>
                 <td>{e.category}</td>
                 <td>₹{e.amount}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || ''}</td>
-                <td style={{ textAlign: 'center', verticalAlign: 'middle', width: '80px' }}>
+                <td
+                  style={{
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    width: '80px',
+                  }}
+                >
                   {e.Image ? (
                     <img
                       src={`https://www.kaushikops.com${e.Image}`}
@@ -176,31 +164,28 @@ function App() {
                         height: 'auto',
                         cursor: 'pointer',
                         borderRadius: '5px',
-                        transition: 'transform 0.2s'
+                        transition: 'transform 0.2s',
                       }}
                       onClick={() => setPreviewImage(e.Image)}
-                      onMouseOver={ev => ev.target.style.transform = 'scale(1.2)'}
-                      onMouseOut={ev => ev.target.style.transform = 'scale(1)'}
+                      onMouseOver={(el) =>
+                        (el.target.style.transform = 'scale(1.2)')
+                      }
+                      onMouseOut={(el) =>
+                        (el.target.style.transform = 'scale(1)')
+                      }
                     />
                   ) : (
-                    <span style={{ color: '#999', fontSize: '0.85em' }}>No Bill</span>
+                    <span style={{ color: '#999', fontSize: '0.85em' }}>
+                      No Bill
+                    </span>
                   )}
                 </td>
-                <td className="flex gap-2">
-                  {/* Edit button */}
+                <td>
                   <button
-                    onClick={() => startEdit(e)}
-                    className="flex items-center gap-1 bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
-                  >
-                    <FaEdit size={14} /> Edit
-                  </button>
-
-                  {/* Delete button */}
-                  <button
+                    className="btn-delete"
                     onClick={() => remove(e._id)}
-                    className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                   >
-                    <FaTrash size={14} /> Delete
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -223,7 +208,7 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999
+            zIndex: 9999,
           }}
         >
           <img
@@ -232,7 +217,7 @@ function App() {
             style={{
               maxWidth: '90%',
               maxHeight: '90%',
-              borderRadius: '8px'
+              borderRadius: '8px',
             }}
           />
         </div>
