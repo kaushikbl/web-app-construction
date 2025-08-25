@@ -17,7 +17,7 @@ pipeline {
                 git branch: 'dev', url: 'https://github.com/kaushikbl/web-app-construction.git'           }
         }
     
-        stage('Install Dependencies for frontend') {
+        stage('Install Dependencies - Frontend') {
             steps {
                 dir('frontend') {
                    sh "npm install"
@@ -26,7 +26,7 @@ pipeline {
         }
     }
     
-        stage('Install Dependencies for backend') {
+        stage('Install Dependencies - Backend') {
             steps {
                 dir('backend') {
                    sh "npm install"
@@ -34,7 +34,7 @@ pipeline {
         }
     }
         
-        stage("Docker Build frontend & Push"){
+        stage("Docker Build & Push - Frontend") {
             steps{
                 script{
                    withDockerRegistry(credentialsId: 'docker-cred') {
@@ -48,7 +48,7 @@ pipeline {
       }    
     }
         
-        stage("Docker Build backend & Push"){
+        stage("Docker Build & Push - Backend") {
             steps{
                 script{
                    withDockerRegistry(credentialsId: 'docker-cred') {
@@ -65,19 +65,29 @@ pipeline {
         stage("Deploy to EKS") {
            steps {
               withAWS(credentials: 'aws-cred', region: 'us-east-2') {
-                 
-                  sh """
-                    aws sts get-caller-identity
-                    aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
-                    kubectl apply -f k8s
-                    kubectl set image deployment/frontend frontend=${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}
-                    kubectl set image deployment/backend backend=${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}
-                    kubectl rollout status deployment/frontend
-                    kubectl rollout status deployment/backend
-                    """
-              }
-        }
-     }
-    }
-}
+                 script {
+                        try {
 
+                      sh """
+                       aws sts get-caller-identity
+                       aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+                       kubectl apply -f k8s
+                       kubectl set image deployment/frontend frontend=${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}
+                       kubectl set image deployment/backend backend=${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}
+                       kubectl rollout status deployment/frontend
+                       kubectl rollout status deployment/backend
+                       """
+                        } catch (err) {
+                               echo "❌ Deployment failed. Rolling back..."
+                               sh """
+                                   kubectl rollout undo deployment/frontend || true
+                                   kubectl rollout undo deployment/backend || true
+                                  """
+                                  error("Deployment rolled back due to failure.")
+                       }
+                   }
+               }
+           }
+       }
+    }
+}   
