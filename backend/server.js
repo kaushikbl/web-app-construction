@@ -6,7 +6,7 @@ const Category = require('./models/Category');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const Expense = require('./models/Expense');
+//const Expense = require('./models/Expense');
 
 const app = express();
 app.use(cors());
