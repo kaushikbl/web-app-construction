@@ -4,7 +4,8 @@ import './App.css';
 
 // const API = "http://3.145.124.162:30050/api";
 // const API = "https://www.kaushikops.com/api";
-   const API = "http://backend:5000/api";
+// const API = "http://backend:5000/api";
+   const API = "/api";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
