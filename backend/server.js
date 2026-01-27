@@ -6,6 +6,7 @@ const Category = require('./models/Category');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Expense = require('./models/Expense');
 
 const app = express();
 app.use(cors());
@@ -26,15 +27,15 @@ mongoose.connect(mongoUri)
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Expense Schema
-const expenseSchema = new mongoose.Schema({
-  quantity: { type: String, required: true },
-  category: { type: String, required: true },
-  amount: { type: Number, required: true },
-  date: { type: Date, default: Date.now },
-  notes: { type: String },
-  Image: { type: String }
-});
-const Expense = mongoose.model('Expense', expenseSchema);
+// const expenseSchema = new mongoose.Schema({
+ // quantity: { type: String, required: true },
+ // category: { type: String, required: true },
+ // amount: { type: Number, required: true },
+//  date: { type: Date, default: Date.now },
+//  notes: { type: String },
+//  Image: { type: String }
+// });
+ // const Expense = mongoose.model('Expense', expenseSchema);
 
 // Multer config
 const storage = multer.diskStorage({
