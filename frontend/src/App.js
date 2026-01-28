@@ -12,7 +12,6 @@ function App() {
   const [form, setForm] = useState({
     quantity: '',
     category: '',
-    group: '',
     amount: '',
     notes: '',
     Image: null,
@@ -67,7 +66,6 @@ function App() {
       setForm({
         quantity: '',
         category: '',
-        group: '',
         amount: '',
         notes: '',
         Image: null,
