@@ -98,7 +98,9 @@ function App() {
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group, })}
         >
-          <option value="">Select Category</option>
+          <option value={cat.name} data-group={group}>
+             {cat.name} 
+             </option>
 
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
