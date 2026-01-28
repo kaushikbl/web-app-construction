@@ -86,7 +86,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Expense Dashboard</h1>
+      <h1>Expense-Dashboard</h1>
 
       <div className="form-row">
         <input
@@ -99,16 +99,17 @@ function App() {
           onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
           <option value="">Select Category</option>
+
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
-          {categories.map((cat) => (
-            <option key={cat._id} value={cat.name}>
-              {cat.name}
-            </option>
-          ))}
+              {items.map((cat) => (
+                <option key={cat._id} value={cat.name}>
+                 {cat.name}
+               </option>
+            ))}
           </optgroup>
-          ))}
-        </select>
+        ))}
+      </select>
 
         <input
           placeholder="Amount"
