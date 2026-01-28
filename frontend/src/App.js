@@ -98,7 +98,7 @@ function App() {
         />
         <select
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group, })}
         >
           <option value="">Select Category</option>
 
@@ -128,10 +128,7 @@ function App() {
           type="file"
           onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
         />
-        <input
-          type="file"
-          onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}
-        /> 
+        
 
         <button className="btn-add" onClick={add}>
           Add
