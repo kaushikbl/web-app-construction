@@ -159,7 +159,8 @@ function App() {
                 >
                   {e.Image ? (
                     <img
-                      src={`https://www.kaushikops.com${e.Image}`}
+                    //  src={`https://www.kaushikops.com${e.Image}`}
+                      src={e.Image}
                       alt="View"
                       style={{
                         width: '60px',
