@@ -38,7 +38,7 @@ function App() {
   };
 
   const addExpense = async () => {
-    if (!form.quantity || !form.category || !form.amount || !form.group) {
+    if (!form.quantity || !form.category || !form.amount) {
     alert('Fill all required fields');
     return;
   }
