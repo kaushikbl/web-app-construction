@@ -168,101 +168,102 @@ app.get('/api/seed/categories', async (req, res) => {
   try {
     const defaults = [
       // Site preparation
-      { name: 'Borewell' },
-      { name: 'Earthwork / Excavation' },
-      { name: 'Soil Filling' },
-      { name: 'Debris Removal' },
-      { name: 'Anti-termite Treatment' },
+       { name: 'Borewell', group: 'Site Preparation' },
+       { name: 'Earthwork / Excavation', group: 'Site Preparation' },
+       { name: 'Soil Filling', group: 'Site Preparation' },
+       { name: 'Debris Removal', group: 'Site Preparation' },
+       { name: 'Anti-termite Treatment', group: 'Site Preparation' },
 
       // Foundation & structure
-      'Cement',
-      'Sand',
-      'Aggregate (Jelly)',
-      'Steel (TMT)',
-      'Binding Wire',
-      'RCC Work',
-      'Footing Concrete',
-      'Shuttering Material',
-      'Centering Charges',
-      'Scaffolding',
+       { name: 'Cement', group: 'Foundation & Structure' },
+       { name: 'Sand', group: 'Foundation & Structure' },
+       { name: 'Aggregate (Jelly)', group: 'Foundation & Structure' },
+       { name: 'Steel (TMT)', group: 'Foundation & Structure' },
+       { name: 'Binding Wire', group: 'Foundation & Structure' },
+       { name: 'RCC Work', group: 'Foundation & Structure' },
+       { name: 'Footing Concrete', group: 'Foundation & Structure' },
+       { name: 'Shuttering Material', group: 'Foundation & Structure' },
+       { name: 'Centering Charges', group: 'Foundation & Structure' },
+       { name: 'Scaffolding', group: 'Foundation & Structure' },
 
        // Masonry
-      'Bricks',
-      'Solid Blocks',
-      'Hollow Blocks',
-      'AAC Blocks',
+       { name: 'Bricks', group: 'Masonry' },
+       { name: 'Solid Blocks', group: 'Masonry' },
+       { name: 'Hollow Blocks', group: 'Masonry' },
+       { name: 'AAC Blocks', group: 'Masonry' },
 
       // Roofing
-      'Roof Slab',
-      'Terrace Waterproofing',
-      'Heat Insulation',
+       { name: 'Roof Slab', group: 'Roofing' },
+       { name: 'Terrace Waterproofing', group: 'Roofing' },
+       { name: 'Heat Insulation', group: 'Roofing' },
 
       // Plumbing
-      'Plumbing Pipes',
-      'Pipe Fittings',
-      'Water Tank',
-      'Pump & Motor',
-      'Sanitary Ware',
-      'Bathroom Fittings',
+       { name: 'Plumbing Pipes', group: 'Plumbing' },
+       { name: 'Pipe Fittings', group: 'Plumbing' },
+       { name: 'Water Tank', group: 'Plumbing' },
+       { name: 'Pump & Motor', group: 'Plumbing' },
+       { name: 'Sanitary Ware', group: 'Plumbing' },
+       { name: 'Bathroom Fittings', group: 'Plumbing' },
 
       // Electrical
-      'Electrical Wiring',
-      'Switches & Sockets',
-      'Lights & Fixtures',
-      'Fans',
-      'Distribution Board',
-      'Earthing',
+       { name: 'Electrical Wiring', group: 'Electrical' },
+       { name: 'Switches & Sockets', group: 'Electrical' },
+       { name: 'Lights & Fixtures', group: 'Electrical' },
+       { name: 'Fans', group: 'Electrical' },
+       { name: 'Distribution Board', group: 'Electrical' },
+       { name: 'Earthing', group: 'Electrical' },
+
 
       // Carpentry & wood
-      'Wood',
-      'Plywood',
-      'Doors',
-      'Windows',
-      'Wardrobes',
-      'Kitchen Cabinets',
+       { name: 'Wood', group: 'Carpentry & Wood Work' },
+       { name: 'Plywood', group: 'Carpentry & Wood Work' },
+       { name: 'Doors', group: 'Carpentry & Wood Work' },
+       { name: 'Windows', group: 'Carpentry & Wood Work' },
+       { name: 'Wardrobes', group: 'Carpentry & Wood Work' },
+       { name: 'Kitchen Cabinets', group: 'Carpentry & Wood Work' },
 
       // Flooring
-      'Floor Tiles',
-      'Wall Tiles',
-      'Granite',
-      'Marble',
-      'Tile Adhesive',
-      'Tile Grout',
+       { name: 'Floor Tiles', group: 'Flooring' },
+       { name: 'Wall Tiles', group: 'Flooring' },
+       { name: 'Granite', group: 'Flooring' },
+       { name: 'Marble', group: 'Flooring' },
+       { name: 'Tile Adhesive', group: 'Flooring' },
+       { name: 'Tile Grout', group: 'Flooring' },
 
       // Metal & fabrication
-      'MS Grill',
-      'Gate Fabrication',
-      'Staircase Railing',
-      'Balcony Railing',
+       { name: 'MS Grill', group: 'Metal & Fabrication' },
+       { name: 'Gate Fabrication', group: 'Metal & Fabrication' },
+       { name: 'Staircase Railing', group: 'Metal & Fabrication' },
+       { name: 'Balcony Railing', group: 'Metal & Fabrication' },
 
       // Exterior works
-      'Compound Wall',
-      'Paver Blocks',
-      'Landscaping',
-      'Rainwater Harvesting',
+       { name: 'Compound Wall', group: 'Exterior Works' },
+       { name: 'Paver Blocks', group: 'Exterior Works' },
+       { name: 'Landscaping', group: 'Exterior Works' },
+       { name: 'Rainwater Harvesting', group: 'Exterior Works' },
 
       // Labor & services
-      'General Labor',
-      'Mason Charges',
-      'Carpenter Charges',
-      'Electrician Charges',
-      'Plumber Charges',
-      'Contractor Charges',
+       { name: 'General Labor', group: 'Labor & Services' },
+       { name: 'Mason Charges', group: 'Labor & Services' },
+       { name: 'Carpenter Charges', group: 'Labor & Services' },
+       { name: 'Electrician Charges', group: 'Labor & Services' },
+       { name: 'Plumber Charges', group: 'Labor & Services' },
+       { name: 'Contractor Charges', group: 'Labor & Services' },
 
       // Professional & govt
-      'Architect Fees',
-      'Structural Engineer Fees',
-      'Plan Approval Charges',
-      'BBMP / Panchayat Fees',
-      'Electricity Connection Charges',
-      'Water Connection Charges',
+       { name: 'Architect Fees', group: 'Professional & Government' },
+       { name: 'Structural Engineer Fees', group: 'Professional & Government' },
+       { name: 'Plan Approval Charges', group: 'Professional & Government' },
+       { name: 'BBMP / Panchayat Fees', group: 'Professional & Government' },
+       { name: 'Electricity Connection Charges', group: 'Professional & Government' },
+       { name: 'Water Connection Charges', group: 'Professional & Government' },
 
       // Transport & misc
-      'Material Transportation',
-      'Crane Charges',
-      'Loading & Unloading',
-      'Cleaning Charges',
-      'Miscellaneous'
+        { name: 'Material Transportation', group: 'Transport & Miscellaneous' },
+        { name: 'Crane Charges', group: 'Transport & Miscellaneous' },
+        { name: 'Loading & Unloading', group: 'Transport & Miscellaneous' },
+        { name: 'Cleaning Charges', group: 'Transport & Miscellaneous' },
+        { name: 'Miscellaneous', group: 'Transport & Miscellaneous' }
     ];
 
     await Category.insertMany(defaults, { ordered: false });
