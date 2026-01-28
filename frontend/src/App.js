@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// const API = "http://3.145.124.162:30050/api";
-// const API = "https://www.kaushikops.com/api";
-// const API = "http://backend:5000/api";
-   const API = "/api";
+const API = "/api";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+
   const [form, setForm] = useState({
     quantity: '',
     category: '',
@@ -16,132 +17,114 @@ function App() {
     notes: '',
     Image: null,
   });
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
   useEffect(() => {
-    // Load categories
     fetch(`${API}/categories`)
-      .then((res) => res.json())
-      .then((data) => setCategories(data))
-      .catch((err) => console.error('Error loading categories:', err));
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(console.error);
 
-    // Load expenses from backend on app start
-    load();
+    loadExpenses();
   }, []);
 
-  const load = async () => {
+  const loadExpenses = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/expenses`);
       setExpenses(res.data);
-    } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const add = async () => {
+  const addExpense = async () => {
     if (!form.quantity || !form.category || !form.amount) {
-      return alert('Fill required fields');
+      alert('Fill required fields');
+      return;
     }
 
-    const formData = new FormData();
-    formData.append('quantity', form.quantity);
-    formData.append('category', form.category);
-    formData.append('amount', form.amount);
-    formData.append('notes', form.notes);
-    if (form.Image) {
-      formData.append('Image', form.Image);
-    }
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
-    try {
-      const res = await axios.post(`${API}/expenses`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+    const res = await axios.post(`${API}/expenses`, fd);
+    setExpenses([res.data, ...expenses]);
 
-      setExpenses([res.data, ...expenses]);
-      setForm({
-        quantity: '',
-        category: '',
-        amount: '',
-        notes: '',
-        Image: null,
-      });
-      document.querySelector('input[type="file"]').value = ''; // clear file input
-    } catch (error) {
-      console.error('Error adding expense:', error);
-    }
+    setForm({ quantity: '', category: '', amount: '', notes: '', Image: null });
+    document.querySelector('input[type="file"]').value = '';
   };
 
-  const remove = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
+  const removeExpense = async (id) => {
+    if (!window.confirm('Delete expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
-    setExpenses(expenses.filter((e) => e._id !== id));
+    setExpenses(expenses.filter(e => e._id !== id));
   };
 
-  const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  // 🔥 GROUP EXPENSES BY CATEGORY
+  const groupedExpenses = useMemo(() => {
+    return expenses.reduce((acc, e) => {
+      acc[e.category] = acc[e.category] || [];
+      acc[e.category].push(e);
+      return acc;
+    }, {});
+  }, [expenses]);
+
+  const grandTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
   return (
     <div className="container">
-      <h1>Expense-Dashboard</h1>
+      <h1>Expense Dashboard</h1>
 
+      {/* ================= FORM ================= */}
       <div className="form-row">
         <input
           placeholder="Quantity"
           value={form.quantity}
-          onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+          onChange={e => setForm({ ...form, quantity: e.target.value })}
         />
+
         <select
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group, })}
+          onChange={e => setForm({ ...form, category: e.target.value })}
         >
           <option value="">Select Category</option>
-
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
-              {items.map((cat) => (
-              <option key={cat._id} value={cat.name} data-group={group}>
-              {cat.name}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
+              {items.map(cat => (
+                <option key={cat._id} value={cat.name}>{cat.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
 
         <input
-          placeholder="Amount"
           type="number"
+          placeholder="Amount"
           value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          onChange={e => setForm({ ...form, amount: e.target.value })}
         />
+
         <input
-          placeholder="Notes (optional)"
+          placeholder="Notes"
           value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          onChange={e => setForm({ ...form, notes: e.target.value })}
         />
+
         <input
           type="file"
-          onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
+          onChange={e => setForm({ ...form, Image: e.target.files[0] })}
         />
-        
 
-        <button className="btn-add" onClick={add}>
-          Add
-        </button>
+        <button className="btn-add" onClick={addExpense}>Add</button>
       </div>
 
-      <div className="total">Total: ₹{total}</div>
+      <div className="total">Grand Total: ₹{grandTotal}</div>
 
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
+      {/* ================= TABLE ================= */}
+      {loading ? <div>Loading...</div> : (
         <table className="expense-table">
           <thead>
             <tr>
-              <th>Quantity</th>
+              <th>Qty</th>
               <th>Category</th>
               <th>Amount</th>
               <th>Date</th>
@@ -150,87 +133,54 @@ function App() {
               <th>Action</th>
             </tr>
           </thead>
+
           <tbody>
-            {expenses.map((e) => (
-              <tr key={e._id}>
-                <td>{e.quantity}</td>
-                <td>{e.category}</td>
-                <td>₹{e.amount}</td>
-                <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes || ''}</td>
-                <td
-                  style={{
-                    textAlign: 'center',
-                    verticalAlign: 'middle',
-                    width: '80px',
-                  }}
-                >
-                  {e.Image ? (
-                    <img
-                    //  src={`https://www.kaushikops.com${e.Image}`}
-                      src={e.Image}
-                      alt="View"
-                      style={{
-                        width: '60px',
-                        height: 'auto',
-                        cursor: 'pointer',
-                        borderRadius: '5px',
-                        transition: 'transform 0.2s',
-                      }}
-                      onClick={() => setPreviewImage(e.Image)}
-                      onMouseOver={(el) =>
-                        (el.target.style.transform = 'scale(1.2)')
-                      }
-                      onMouseOut={(el) =>
-                        (el.target.style.transform = 'scale(1)')
-                      }
-                    />
-                  ) : (
-                    <span style={{ color: '#999', fontSize: '0.85em' }}>
-                      No Bill
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <button
-                    className="btn-delete"
-                    onClick={() => remove(e._id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {Object.entries(groupedExpenses).map(([category, items]) => {
+              const subTotal = items.reduce((s, e) => s + e.amount, 0);
+
+              return (
+                <React.Fragment key={category}>
+                  {/* CATEGORY HEADER */}
+                  <tr className="group-header">
+                    <td colSpan="7">
+                      <strong>{category}</strong> — Subtotal: ₹{subTotal}
+                    </td>
+                  </tr>
+
+                  {/* CATEGORY ROWS */}
+                  {items.map(e => (
+                    <tr key={e._id}>
+                      <td>{e.quantity}</td>
+                      <td>{e.category}</td>
+                      <td>₹{e.amount}</td>
+                      <td>{new Date(e.date).toLocaleDateString()}</td>
+                      <td>{e.notes}</td>
+                      <td>
+                        {e.Image ? (
+                          <img
+                            src={e.Image}
+                            alt="bill"
+                            style={{ width: 50, cursor: 'pointer' }}
+                            onClick={() => setPreviewImage(e.Image)}
+                          />
+                        ) : 'No Bill'}
+                      </td>
+                      <td>
+                        <button onClick={() => removeExpense(e._id)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       )}
 
-      {/* Modal Preview */}
+      {/* ================= IMAGE MODAL ================= */}
       {previewImage && (
-        <div
-          onClick={() => setPreviewImage(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-        >
-          <img
-            src={previewImage}
-            alt="Preview"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: '8px',
-            }}
-          />
+        <div className="modal" onClick={() => setPreviewImage(null)}>
+          <img src={previewImage} alt="Preview" />
         </div>
       )}
     </div>
