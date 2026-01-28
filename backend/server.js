@@ -167,11 +167,102 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/seed/categories', async (req, res) => {
   try {
     const defaults = [
+      // Site preparation
       { name: 'Borewell' },
-      { name: 'Steel' },
-      { name: 'Sand' },
-      { name: 'Bricks' },
-      { name: 'Labor' }
+      { name: 'Earthwork / Excavation' },
+      { name: 'Soil Filling' },
+      { name: 'Debris Removal' },
+      { name: 'Anti-termite Treatment' },
+
+      // Foundation & structure
+      'Cement',
+      'Sand',
+      'Aggregate (Jelly)',
+      'Steel (TMT)',
+      'Binding Wire',
+      'RCC Work',
+      'Footing Concrete',
+      'Shuttering Material',
+      'Centering Charges',
+      'Scaffolding',
+
+       // Masonry
+      'Bricks',
+      'Solid Blocks',
+      'Hollow Blocks',
+      'AAC Blocks',
+
+      // Roofing
+      'Roof Slab',
+      'Terrace Waterproofing',
+      'Heat Insulation',
+
+      // Plumbing
+      'Plumbing Pipes',
+      'Pipe Fittings',
+      'Water Tank',
+      'Pump & Motor',
+      'Sanitary Ware',
+      'Bathroom Fittings',
+
+      // Electrical
+      'Electrical Wiring',
+      'Switches & Sockets',
+      'Lights & Fixtures',
+      'Fans',
+      'Distribution Board',
+      'Earthing',
+
+      // Carpentry & wood
+      'Wood',
+      'Plywood',
+      'Doors',
+      'Windows',
+      'Wardrobes',
+      'Kitchen Cabinets',
+
+      // Flooring
+      'Floor Tiles',
+      'Wall Tiles',
+      'Granite',
+      'Marble',
+      'Tile Adhesive',
+      'Tile Grout',
+
+      // Metal & fabrication
+      'MS Grill',
+      'Gate Fabrication',
+      'Staircase Railing',
+      'Balcony Railing',
+
+      // Exterior works
+      'Compound Wall',
+      'Paver Blocks',
+      'Landscaping',
+      'Rainwater Harvesting',
+
+      // Labor & services
+      'General Labor',
+      'Mason Charges',
+      'Carpenter Charges',
+      'Electrician Charges',
+      'Plumber Charges',
+      'Contractor Charges',
+
+      // Professional & govt
+      'Architect Fees',
+      'Structural Engineer Fees',
+      'Plan Approval Charges',
+      'BBMP / Panchayat Fees',
+      'Electricity Connection Charges',
+      'Water Connection Charges',
+
+      // Transport & misc
+      'Material Transportation',
+      'Crane Charges',
+      'Loading & Unloading',
+      'Cleaning Charges',
+      'Miscellaneous'
     ];
 
     await Category.insertMany(defaults, { ordered: false });
