@@ -102,7 +102,7 @@ function App() {
 
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
-              {categories.map((cat) => (
+              {items.map((cat) => (
               <option key={cat._id} value={cat.name}>
               {cat.name}
               </option>
