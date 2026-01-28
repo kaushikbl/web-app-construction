@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API = '/api';
+// const API = "http://3.145.124.162:30050/api";
+// const API = "https://www.kaushikops.com/api";
+// const API = "http://backend:5000/api";
+   const API = "/api";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-
   const [form, setForm] = useState({
     quantity: '',
     category: '',
@@ -18,20 +17,22 @@ function App() {
     notes: '',
     Image: null,
   });
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null); // For modal preview
 
-  /* =======================
-     Load categories & expenses
-     ======================= */
   useEffect(() => {
+    // Load categories
     fetch(`${API}/categories`)
       .then((res) => res.json())
       .then((data) => setCategories(data))
-      .catch(console.error);
+      .catch((err) => console.error('Error loading categories:', err));
 
-    loadExpenses();
+    // Load expenses from backend on app start
+    load();
   }, []);
 
-  const loadExpenses = async () => {
+  const load = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/expenses`);
@@ -43,32 +44,19 @@ function App() {
     }
   };
 
-  /* =======================
-     Group categories for UI
-     ======================= */
-  const groupedCategories = categories.reduce((acc, cat) => {
-    const group = cat.group || 'Others';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(cat);
-    return acc;
-  }, {});
-
-  /* =======================
-     Add expense
-     ======================= */
-  const addExpense = async () => {
+  const add = async () => {
     if (!form.quantity || !form.category || !form.amount) {
-      alert('Fill required fields');
-      return;
+      return alert('Fill required fields');
     }
 
     const formData = new FormData();
     formData.append('quantity', form.quantity);
     formData.append('category', form.category);
-    formData.append('group', form.group);
     formData.append('amount', form.amount);
     formData.append('notes', form.notes);
-    if (form.Image) formData.append('Image', form.Image);
+    if (form.Image) {
+      formData.append('Image', form.Image);
+    }
 
     try {
       const res = await axios.post(`${API}/expenses`, formData, {
@@ -84,65 +72,46 @@ function App() {
         notes: '',
         Image: null,
       });
-
-      document.querySelector('input[type="file"]').value = '';
-    } catch (err) {
-      console.error(err);
+      document.querySelector('input[type="file"]').value = ''; // clear file input
+    } catch (error) {
+      console.error('Error adding expense:', error);
     }
   };
 
-  /* =======================
-     Delete expense
-     ======================= */
-  const removeExpense = async (id) => {
+  const remove = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
     setExpenses(expenses.filter((e) => e._id !== id));
   };
 
-  const total = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
-  /* =======================
-     UI
-     ======================= */
   return (
     <div className="container">
-      <h1>Expense Dashboard</h1>
+      <h1>Expense-Dashboard</h1>
 
-      {/* ===== Form ===== */}
       <div className="form-row">
         <input
           placeholder="Quantity"
           value={form.quantity}
           onChange={(e) => setForm({ ...form, quantity: e.target.value })}
         />
-
         <select
           value={form.category}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              category: e.target.value,
-              group: e.target.selectedOptions[0].dataset.group,
-            })
-          }
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
           <option value="">Select Category</option>
 
-          {Object.entries(groupedCategories).map(([group, items]) => (
+          {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
               {items.map((cat) => (
-                <option
-                  key={cat._id}
-                  value={cat.name}
-                  data-group={group}
-                >
-                  {cat.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+              <option key={cat._id} value={cat.name} data-group={group}>
+              {cat.name}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
 
         <input
           placeholder="Amount"
@@ -150,33 +119,34 @@ function App() {
           value={form.amount}
           onChange={(e) => setForm({ ...form, amount: e.target.value })}
         />
-
         <input
           placeholder="Notes (optional)"
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
-
         <input
           type="file"
           onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
         />
+        <input
+          type="file"
+          onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}
+        /> 
 
-        <button className="btn-add" onClick={addExpense}>
+        <button className="btn-add" onClick={add}>
           Add
         </button>
       </div>
 
       <div className="total">Total: ₹{total}</div>
 
-      {/* ===== Table ===== */}
       {loading ? (
         <div>Loading...</div>
       ) : (
         <table className="expense-table">
           <thead>
             <tr>
-              <th>Qty</th>
+              <th>Quantity</th>
               <th>Category</th>
               <th>Amount</th>
               <th>Date</th>
@@ -192,24 +162,44 @@ function App() {
                 <td>{e.category}</td>
                 <td>₹{e.amount}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes}</td>
-                <td>
+                <td>{e.notes || ''}</td>
+                <td
+                  style={{
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    width: '80px',
+                  }}
+                >
                   {e.Image ? (
                     <img
+                    //  src={`https://www.kaushikops.com${e.Image}`}
                       src={e.Image}
-                      alt="Bill"
-                      width="50"
-                      style={{ cursor: 'pointer' }}
+                      alt="View"
+                      style={{
+                        width: '60px',
+                        height: 'auto',
+                        cursor: 'pointer',
+                        borderRadius: '5px',
+                        transition: 'transform 0.2s',
+                      }}
                       onClick={() => setPreviewImage(e.Image)}
+                      onMouseOver={(el) =>
+                        (el.target.style.transform = 'scale(1.2)')
+                      }
+                      onMouseOut={(el) =>
+                        (el.target.style.transform = 'scale(1)')
+                      }
                     />
                   ) : (
-                    'No Bill'
+                    <span style={{ color: '#999', fontSize: '0.85em' }}>
+                      No Bill
+                    </span>
                   )}
                 </td>
                 <td>
                   <button
                     className="btn-delete"
-                    onClick={() => removeExpense(e._id)}
+                    onClick={() => remove(e._id)}
                   >
                     Delete
                   </button>
@@ -220,13 +210,32 @@ function App() {
         </table>
       )}
 
-      {/* ===== Image Preview ===== */}
+      {/* Modal Preview */}
       {previewImage && (
         <div
-          className="modal"
           onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
         >
-          <img src={previewImage} alt="Preview" />
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '8px',
+            }}
+          />
         </div>
       )}
     </div>
