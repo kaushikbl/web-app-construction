@@ -38,15 +38,14 @@ function App() {
   };
 
   const addExpense = async () => {
-    if (!form.quantity || !form.category || !form.amount) {
-      alert('Fill required fields');
-      return;
-    }
-
+    if (!form.quantity || !form.category || !form.amount || !form.group) {
+    alert('Fill all required fields');
+    return;
+  }
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
-    const res = await axios.post(`${API}/expenses`, fd);
+    const res = await axios.post(`${API}/expenses`, formData);
     setExpenses([res.data, ...expenses]);
 
     setForm({ quantity: '', category: '', amount: '', notes: '', Image: null });
