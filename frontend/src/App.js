@@ -99,12 +99,17 @@ function App() {
           onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
           <option value="">Select Category</option>
+          {Object.entries(categories).map(([group, items]) => (
+            <optgroup key={group} label={group}>
           {categories.map((cat) => (
             <option key={cat._id} value={cat.name}>
               {cat.name}
             </option>
           ))}
+          </optgroup>
+          ))}
         </select>
+
         <input
           placeholder="Amount"
           type="number"
