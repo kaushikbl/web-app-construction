@@ -4,13 +4,13 @@ import './App.css';
 
 const API = '/api';
 
-/* ===== PROJECT CONFIG ===== */
-const PROJECT_BUDGET = 11200000; // Approved / working budget
+/* ===== PROJECT INFO ===== */
+const PROJECT_BUDGET = 11200000; // Approved working budget
 const PROJECT_INFO = {
   name: 'Residential House Construction',
   location: 'Bengaluru',
-  type: 'Independent House (Split / G+1 / G+2 / G+3)',
-  estimatedCost: 11200000, // Estimated total cost
+  type: 'Independent House (Slit / G+1 / G+2 / G+3)',
+  estimatedCost: 11200000,
 };
 
 const CATEGORY_ICONS = {
@@ -23,9 +23,6 @@ const CATEGORY_ICONS = {
   'Transport & Miscellaneous': '🚚',
   'Professional & Government': '📄',
   'Site Preparation': '🚜',
-  'Carpentry & Wood Work': '🪚',
-  'Metal & Fabrication': '🔩',
-  'Exterior Works': '🌳',
 };
 
 function App() {
@@ -115,7 +112,7 @@ function App() {
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* ===== FILTERS ===== */
+  /* ===== FILTERING ===== */
   const filteredExpenses = expenses.filter((e) => {
     const d = new Date(e.date);
     const monthOK = selectedMonth
@@ -173,77 +170,56 @@ function App() {
     >
       <h1>Construction Expense Dashboard</h1>
 
-      {/* ===== TOP ROW ===== */}
+      {/* ===== PROJECT OVERVIEW ===== */}
       <div style={row}>
-        {/* PROJECT OVERVIEW */}
         <div style={card}>
-          <h3 style={{ marginBottom: 10 }}>🏗️ Project Overview</h3>
+          <h3>🏗️ Project Overview</h3>
 
-          <div style={overviewRow}>
-            <span>Project Name</span>
-            <strong>{PROJECT_INFO.name}</strong>
-          </div>
+          <OverviewRow label="Project Name" value={PROJECT_INFO.name} />
+          <OverviewRow label="Location" value={PROJECT_INFO.location} />
+          <OverviewRow label="Project Type" value={PROJECT_INFO.type} />
 
-          <div style={overviewRow}>
-            <span>Location</span>
-            <strong>{PROJECT_INFO.location}</strong>
-          </div>
+          <hr />
 
-          <div style={overviewRow}>
-            <span>Project Type</span>
-            <strong>{PROJECT_INFO.type}</strong>
-          </div>
+          <OverviewRow
+            label="Estimated Cost"
+            value={`₹${PROJECT_INFO.estimatedCost.toLocaleString()}`}
+          />
+          <OverviewRow
+            label="Approved Budget"
+            value={`₹${PROJECT_BUDGET.toLocaleString()}`}
+          />
+          <OverviewRow
+            label="Total Spent"
+            value={`₹${totalProjectSpent.toLocaleString()}`}
+          />
+          <OverviewRow
+            label="Remaining"
+            value={`₹${remainingBudget.toLocaleString()}`}
+            color={remainingBudget < 0 ? '#dc3545' : '#28a745'}
+          />
+          <OverviewRow
+            label="Budget Used"
+            value={`${projectPercent}%`}
+          />
 
-          <hr style={{ margin: '8px 0', borderColor: '#eee' }} />
-
-          <div style={overviewRow}>
-            <span>Estimated Cost</span>
-            <strong>₹{PROJECT_INFO.estimatedCost.toLocaleString()}</strong>
-          </div>
-
-          <div style={overviewRow}>
-            <span>Approved Budget</span>
-            <strong>₹{PROJECT_BUDGET.toLocaleString()}</strong>
-          </div>
-
-          <div style={overviewRow}>
-            <span>Total Spent</span>
-            <strong>₹{totalProjectSpent.toLocaleString()}</strong>
-          </div>
-
-          <div style={overviewRow}>
-            <span>Remaining</span>
-            <strong
+          <div style={{ marginTop: 8, fontWeight: 600 }}>
+            Status:{' '}
+            <span
               style={{
-                color: remainingBudget < 0 ? '#dc3545' : '#28a745',
+                color:
+                  projectStatus === 'Over Budget'
+                    ? '#dc3545'
+                    : projectStatus === 'At Risk'
+                    ? '#ffc107'
+                    : '#28a745',
               }}
             >
-              ₹{remainingBudget.toLocaleString()}
-            </strong>
-          </div>
-
-          <div style={overviewRow}>
-            <span>Budget Used</span>
-            <strong>{projectPercent}%</strong>
-          </div>
-
-          <div
-            style={{
-              marginTop: 8,
-              fontWeight: 600,
-              color:
-                projectStatus === 'Over Budget'
-                  ? '#dc3545'
-                  : projectStatus === 'At Risk'
-                  ? '#ffc107'
-                  : '#28a745',
-            }}
-          >
-            Status: {projectStatus}
+              {projectStatus}
+            </span>
           </div>
         </div>
 
-        {/* GAUGE */}
         <div style={{ ...card, textAlign: 'center' }}>
           <CircularGauge percent={projectPercent} />
           <div style={{ fontSize: 12 }}>
@@ -255,7 +231,7 @@ function App() {
       {/* ===== FILTER BAR ===== */}
       <div style={row}>
         <div style={{ width: 180 }}>
-          <label style={label}>Filter by Month</label>
+          <label style={label}>Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -348,26 +324,21 @@ function App() {
           </button>
 
           {editing && (
-            <button
-              className="btn-delete"
-              onClick={() => {
-                setEditing(null);
-                resetForm();
-              }}
-            >
+            <button className="btn-delete" onClick={() => setEditing(null)}>
               Cancel
             </button>
           )}
         </div>
       </div>
 
-      {/* ===== CATEGORY GRID ===== */}
+      {/* ===== CATEGORY SUMMARY ===== */}
       <h3>Category Wise Expenses</h3>
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: 16,
+          marginBottom: 30,
         }}
       >
         {Object.entries(categoryTotals).map(([g, amt]) => (
@@ -387,11 +358,85 @@ function App() {
           </div>
         ))}
       </div>
+
+      {/* ===== EXPENSE TABLE ===== */}
+      <h3>Expense Details</h3>
+      <div style={{ overflowX: 'auto', marginBottom: 30 }}>
+        <table className="expense-table">
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Notes</th>
+              <th>Bill</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredExpenses.map((e) => (
+              <tr key={e._id}>
+                <td>{e.quantity}</td>
+                <td>
+                  <div style={{ fontSize: 12, color: '#777' }}>
+                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                  </div>
+                  <strong>{e.category}</strong>
+                </td>
+                <td>₹{Number(e.amount).toLocaleString()}</td>
+                <td>{new Date(e.date).toLocaleDateString()}</td>
+                <td>{e.notes || '—'}</td>
+                <td>
+                  {e.Image ? (
+                    <img
+                      src={e.Image}
+                      alt="Bill"
+                      className="bill-thumb"
+                      onClick={() => setPreviewImage(e.Image)}
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td>
+                  <button className="btn-add" onClick={() => editExpense(e)}>
+                    Edit
+                  </button>{' '}
+                  <button
+                    className="btn-delete"
+                    onClick={() => remove(e._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ===== IMAGE PREVIEW ===== */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={overlay}
+        >
+          <img src={previewImage} alt="Preview" style={previewImg} />
+        </div>
+      )}
     </div>
   );
 }
 
-/* ===== UI HELPERS ===== */
+/* ===== SMALL COMPONENTS ===== */
+
+const OverviewRow = ({ label, value, color }) => (
+  <div style={overviewRow}>
+    <span>{label}</span>
+    <strong style={{ color }}>{value}</strong>
+  </div>
+);
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -423,6 +468,8 @@ const CircularGauge = ({ percent }) => (
   </div>
 );
 
+/* ===== STYLES ===== */
+
 const row = {
   display: 'flex',
   gap: 16,
@@ -449,7 +496,6 @@ const overviewRow = {
   justifyContent: 'space-between',
   fontSize: 13,
   marginBottom: 4,
-  gap: 8,
 };
 
 const progressBg = {
@@ -463,6 +509,22 @@ const progressBar = {
   height: '100%',
   background: '#28a745',
   borderRadius: 4,
+};
+
+const overlay = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.8)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 9999,
+};
+
+const previewImg = {
+  maxWidth: '90%',
+  maxHeight: '90%',
+  borderRadius: 8,
 };
 
 export default App;
