@@ -6,14 +6,14 @@ const API = '/api';
 
 function App() {
   const [expenses, setExpenses] = useState([]);
-  const [categories, setCategories] = useState({}); // ✅ FIX: must be object
+  const [categories, setCategories] = useState({});
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
   const [form, setForm] = useState({
     quantity: '',
     category: '',
-    group: '', // ✅ REQUIRED BY BACKEND
+    group: '',
     amount: '',
     notes: '',
     Image: null,
@@ -29,7 +29,7 @@ function App() {
       const res = await axios.get(`${API}/categories`);
       setCategories(res.data || {});
     } catch (err) {
-      console.error('Error loading categories:', err);
+      console.error('Error loading categories', err);
     }
   };
 
@@ -46,27 +46,22 @@ function App() {
   };
 
   const add = async () => {
-    if (!form.quantity || !form.category || !form.amount || !form.group) {
-      alert('Fill required fields');
+    if (!form.quantity || !form.category || !form.group || !form.amount) {
+      alert('Fill all required fields');
       return;
     }
 
     const formData = new FormData();
     formData.append('quantity', form.quantity);
     formData.append('category', form.category);
-    formData.append('group', form.group); // ✅ FIX
-    formData.append('amount', Number(form.amount));
-    formData.append('notes', form.notes);
-    if (form.Image) {
-      formData.append('Image', form.Image);
-    }
+    formData.append('group', form.group);
+    formData.append('amount', form.amount);
+    formData.append('notes', form.notes || '');
+    if (form.Image) formData.append('Image', form.Image);
 
     try {
       const res = await axios.post(`${API}/expenses`, formData);
-
-      // ✅ SAFE STATE UPDATE
-      setExpenses((prev) => [res.data, ...prev]);
-
+      setExpenses(prev => [res.data, ...prev]);
       setForm({
         quantity: '',
         category: '',
@@ -75,24 +70,20 @@ function App() {
         notes: '',
         Image: null,
       });
-
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-    } catch (error) {
-      console.error('Error adding expense:', error);
+      document.querySelector('input[type="file"]').value = '';
+    } catch (err) {
+      console.error(err);
       alert('Failed to add expense');
     }
   };
 
   const remove = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
-
     try {
       await axios.delete(`${API}/expenses/${id}`);
-      setExpenses((prev) => prev.filter((e) => e._id !== id));
+      setExpenses(prev => prev.filter(e => e._id !== id));
     } catch (err) {
       console.error(err);
-      alert('Failed to delete expense');
     }
   };
 
@@ -107,16 +98,15 @@ function App() {
 
       <div className="form-row">
         <input
+          type="number"
           placeholder="Quantity"
           value={form.quantity}
-          onChange={(e) =>
-            setForm({ ...form, quantity: e.target.value })
-          }
+          onChange={e => setForm({ ...form, quantity: e.target.value })}
         />
 
         <select
           value={form.category}
-          onChange={(e) =>
+          onChange={e =>
             setForm({
               ...form,
               category: e.target.value,
@@ -125,51 +115,41 @@ function App() {
           }
         >
           <option value="">Select Category</option>
-          
-          {Object.keys(categories).length > 0 &&
-  Object.entries(categories).map(([group, items]) =>
-    Array.isArray(items) ? (
-      <optgroup key={group} label={group}>
-        {items.map((cat) => (
-          <option
-            key={cat._id}
-            value={cat.name}
-            data-group={group}
-          >
-            {cat.name}
-          </option>
-        ))}
-      </optgroup>
-    ) : null
-  )}
-</select>
+
+          {Object.entries(categories).map(([group, items]) => (
+            <optgroup key={group} label={group}>
+              {items.map(cat => (
+                <option
+                  key={cat._id}
+                  value={cat.name}
+                  data-group={group}
+                >
+                  {cat.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+
         <input
           type="number"
           placeholder="Amount"
           value={form.amount}
-          onChange={(e) =>
-            setForm({ ...form, amount: e.target.value })
-          }
+          onChange={e => setForm({ ...form, amount: e.target.value })}
         />
 
         <input
-          placeholder="Notes (optional)"
+          placeholder="Notes"
           value={form.notes}
-          onChange={(e) =>
-            setForm({ ...form, notes: e.target.value })
-          }
+          onChange={e => setForm({ ...form, notes: e.target.value })}
         />
 
         <input
           type="file"
-          onChange={(e) =>
-            setForm({ ...form, Image: e.target.files[0] })
-          }
+          onChange={e => setForm({ ...form, Image: e.target.files[0] })}
         />
 
-        <button className="btn-add" onClick={add}>
-          Add
-        </button>
+        <button onClick={add}>Add</button>
       </div>
 
       <div className="total">Total: ₹{total}</div>
@@ -177,10 +157,10 @@ function App() {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <table className="expense-table">
+        <table>
           <thead>
             <tr>
-              <th>Quantity</th>
+              <th>Qty</th>
               <th>Category</th>
               <th>Amount</th>
               <th>Date</th>
@@ -190,36 +170,26 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {expenses.map((e) => (
+            {expenses.map(e => (
               <tr key={e._id}>
                 <td>{e.quantity}</td>
                 <td>{e.category}</td>
                 <td>₹{e.amount}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes || ''}</td>
-                <td style={{ textAlign: 'center' }}>
+                <td>{e.notes}</td>
+                <td>
                   {e.Image ? (
                     <img
                       src={e.Image}
                       alt="Bill"
-                      style={{
-                        width: '60px',
-                        cursor: 'pointer',
-                        borderRadius: '5px',
-                      }}
+                      width="50"
                       onClick={() => setPreviewImage(e.Image)}
+                      style={{ cursor: 'pointer' }}
                     />
-                  ) : (
-                    <span style={{ color: '#999' }}>No Bill</span>
-                  )}
+                  ) : '—'}
                 </td>
                 <td>
-                  <button
-                    className="btn-delete"
-                    onClick={() => remove(e._id)}
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => remove(e._id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -228,27 +198,8 @@ function App() {
       )}
 
       {previewImage && (
-        <div
-          onClick={() => setPreviewImage(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-        >
-          <img
-            src={previewImage}
-            alt="Preview"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: '8px',
-            }}
-          />
+        <div className="preview" onClick={() => setPreviewImage(null)}>
+          <img src={previewImage} alt="Preview" />
         </div>
       )}
     </div>
