@@ -17,11 +17,14 @@ const CATEGORY_ICONS = {
   'Site Preparation': '🚜',
 };
 
+const MONTH_BUDGET = 100000; // 👈 change your monthly budget here
+
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
     quantity: '',
@@ -47,8 +50,8 @@ function App() {
     setExpenses(res.data);
   };
 
-  /* ADD EXPENSE */
-  const add = async () => {
+  /* ADD / UPDATE */
+  const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Please fill required fields');
       return;
@@ -57,9 +60,36 @@ function App() {
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
-    const res = await axios.post(`${API}/expenses`, fd);
-    setExpenses((prev) => [res.data, ...prev]);
+    if (editing) {
+      const res = await axios.put(
+        `${API}/expenses/${editing._id}`,
+        fd
+      );
+      setExpenses((prev) =>
+        prev.map((e) => (e._id === editing._id ? res.data : e))
+      );
+      setEditing(null);
+    } else {
+      const res = await axios.post(`${API}/expenses`, fd);
+      setExpenses((prev) => [res.data, ...prev]);
+    }
 
+    resetForm();
+  };
+
+  const editExpense = (e) => {
+    setEditing(e);
+    setForm({
+      quantity: e.quantity,
+      category: e.category,
+      group: e.group,
+      amount: e.amount,
+      notes: e.notes || '',
+      Image: null,
+    });
+  };
+
+  const resetForm = () => {
     setForm({
       quantity: '',
       category: '',
@@ -68,9 +98,8 @@ function App() {
       notes: '',
       Image: null,
     });
-
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) fileInput.value = '';
+    const f = document.querySelector('input[type="file"]');
+    if (f) f.value = '';
   };
 
   const remove = async (id) => {
@@ -98,6 +127,11 @@ function App() {
     0
   );
 
+  const budgetPercent = Math.min(
+    Math.round((totalSpent / MONTH_BUDGET) * 100),
+    100
+  );
+
   const categoryTotals = filteredExpenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
     return acc;
@@ -122,18 +156,24 @@ function App() {
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* TOP CARDS */}
+      {/* TOP DASHBOARD */}
       <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
         <DashboardCard
           title="Good Morning 👋"
           value="Kaushik"
           subtitle="Track your construction expenses"
         />
-        <DashboardCard
-          title="Budget vs Expense"
-          value={`₹${totalSpent}`}
-          subtitle="Total Spent"
-        />
+
+        {/* CIRCULAR BUDGET GAUGE */}
+        <div style={card}>
+          <div style={{ fontSize: 12, color: '#777' }}>
+            Budget vs Expense
+          </div>
+          <CircularGauge percent={budgetPercent} />
+          <div style={{ fontSize: 12, textAlign: 'center' }}>
+            ₹{totalSpent} / ₹{MONTH_BUDGET}
+          </div>
+        </div>
       </div>
 
       {/* MONTH SELECT */}
@@ -154,16 +194,9 @@ function App() {
         </select>
       </div>
 
-      {/* ADD EXPENSE FORM (RESTORED ✅) */}
-      <div
-        style={{
-          background: 'white',
-          padding: 15,
-          borderRadius: 8,
-          marginBottom: 20,
-        }}
-      >
-        <h3>Add Expense</h3>
+      {/* ADD / EDIT FORM */}
+      <div style={{ background: 'white', padding: 15, borderRadius: 8 }}>
+        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
         <div className="form-row">
           <input
@@ -226,56 +259,68 @@ function App() {
               setForm({ ...form, Image: e.target.files[0] })
             }
           />
-          <button className="btn-add" onClick={add}>
-            Add Expense
+
+          <button className="btn-add" onClick={submit}>
+            {editing ? 'Update Expense' : 'Add Expense'}
           </button>
+
+          {editing && (
+            <button
+              className="btn-delete"
+              onClick={() => {
+                setEditing(null);
+                resetForm();
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
-      {/* CATEGORY CARDS */}
-      <h3>Category Wise Expenses</h3>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: 15,
-          marginBottom: 25,
-        }}
-      >
-        {Object.entries(categoryTotals).map(([g, amt]) => (
+      {/* CATEGORY PROGRESS */}
+      <h3 style={{ marginTop: 20 }}>Category Wise Expenses</h3>
+      {Object.entries(categoryTotals).map(([g, amt]) => (
+        <div
+          key={g}
+          style={{
+            background: 'white',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 8,
+          }}
+        >
           <div
-            key={g}
             style={{
-              background: 'white',
-              padding: 15,
-              borderRadius: 8,
+              display: 'flex',
+              justifyContent: 'space-between',
             }}
           >
-            <div>
+            <span>
               {CATEGORY_ICONS[g] || '📦'} {g}
-            </div>
+            </span>
             <strong>₹{amt}</strong>
+          </div>
 
+          <div
+            style={{
+              height: 6,
+              background: '#e9ecef',
+              borderRadius: 4,
+              marginTop: 5,
+            }}
+          >
             <div
               style={{
-                height: 6,
-                background: '#e9ecef',
+                width: `${(amt / maxCategory) * 100}%`,
+                height: '100%',
+                background: '#28a745',
                 borderRadius: 4,
-                marginTop: 8,
               }}
-            >
-              <div
-                style={{
-                  width: `${(amt / maxCategory) * 100}%`,
-                  height: '100%',
-                  background: '#007bff',
-                  borderRadius: 4,
-                }}
-              />
-            </div>
+            />
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       {/* RECENT TRANSACTIONS */}
       <h3>Recent Transactions</h3>
@@ -318,6 +363,12 @@ function App() {
               </td>
               <td>
                 <button
+                  className="btn-add"
+                  onClick={() => editExpense(e)}
+                >
+                  Edit
+                </button>{' '}
+                <button
                   className="btn-delete"
                   onClick={() => remove(e._id)}
                 >
@@ -357,20 +408,52 @@ function App() {
   );
 }
 
-/* SMALL DASHBOARD CARD */
+/* ---------- COMPONENTS ---------- */
+
 const DashboardCard = ({ title, value, subtitle }) => (
-  <div
-    style={{
-      background: 'white',
-      padding: 15,
-      borderRadius: 8,
-      flex: 1,
-    }}
-  >
+  <div style={card}>
     <div style={{ fontSize: 14 }}>{title}</div>
     <div style={{ fontSize: 18, fontWeight: 'bold' }}>{value}</div>
     <div style={{ fontSize: 12, color: '#777' }}>{subtitle}</div>
   </div>
 );
+
+const CircularGauge = ({ percent }) => (
+  <div
+    style={{
+      width: 120,
+      height: 120,
+      borderRadius: '50%',
+      background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '10px auto',
+    }}
+  >
+    <div
+      style={{
+        width: 90,
+        height: 90,
+        borderRadius: '50%',
+        background: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 'bold',
+      }}
+    >
+      {percent}%
+    </div>
+  </div>
+);
+
+/* ---------- STYLES ---------- */
+const card = {
+  background: 'white',
+  padding: 15,
+  borderRadius: 10,
+  flex: 1,
+};
 
 export default App;
