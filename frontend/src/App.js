@@ -29,7 +29,7 @@ function App() {
       const res = await axios.get(`${API}/categories`);
       setCategories(res.data || {});
     } catch (err) {
-      console.error('Error loading categories', err);
+      console.error('Failed to load categories', err);
     }
   };
 
@@ -47,7 +47,7 @@ function App() {
 
   const add = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Fill all required fields');
+      alert('Please fill all required fields');
       return;
     }
 
@@ -62,6 +62,7 @@ function App() {
     try {
       const res = await axios.post(`${API}/expenses`, formData);
       setExpenses(prev => [res.data, ...prev]);
+
       setForm({
         quantity: '',
         category: '',
@@ -70,7 +71,9 @@ function App() {
         notes: '',
         Image: null,
       });
-      document.querySelector('input[type="file"]').value = '';
+
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
     } catch (err) {
       console.error(err);
       alert('Failed to add expense');
@@ -96,17 +99,20 @@ function App() {
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      <div className="form-row">
+      {/* FORM */}
+      <div className="expense-form">
         <input
           type="number"
           placeholder="Quantity"
           value={form.quantity}
-          onChange={e => setForm({ ...form, quantity: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, quantity: e.target.value })
+          }
         />
 
         <select
           value={form.category}
-          onChange={e =>
+          onChange={(e) =>
             setForm({
               ...form,
               category: e.target.value,
@@ -115,10 +121,9 @@ function App() {
           }
         >
           <option value="">Select Category</option>
-
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
-              {items.map(cat => (
+              {items.map((cat) => (
                 <option
                   key={cat._id}
                   value={cat.name}
@@ -135,29 +140,39 @@ function App() {
           type="number"
           placeholder="Amount"
           value={form.amount}
-          onChange={e => setForm({ ...form, amount: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, amount: e.target.value })
+          }
         />
 
         <input
           placeholder="Notes"
           value={form.notes}
-          onChange={e => setForm({ ...form, notes: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, notes: e.target.value })
+          }
         />
 
         <input
           type="file"
-          onChange={e => setForm({ ...form, Image: e.target.files[0] })}
+          onChange={(e) =>
+            setForm({ ...form, Image: e.target.files[0] })
+          }
         />
 
-        <button onClick={add}>Add</button>
+        <button className="btn-add" onClick={add}>
+          Add
+        </button>
       </div>
 
+      {/* TOTAL */}
       <div className="total">Total: ₹{total}</div>
 
+      {/* TABLE */}
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <table>
+        <table className="expense-table">
           <thead>
             <tr>
               <th>Qty</th>
@@ -170,35 +185,53 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {expenses.map(e => (
-              <tr key={e._id}>
-                <td>{e.quantity}</td>
-                <td>{e.category}</td>
-                <td>₹{e.amount}</td>
-                <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes}</td>
-                <td>
-                  {e.Image ? (
-                    <img
-                      src={e.Image}
-                      alt="Bill"
-                      width="50"
-                      onClick={() => setPreviewImage(e.Image)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  ) : '—'}
-                </td>
-                <td>
-                  <button onClick={() => remove(e._id)}>Delete</button>
+            {expenses.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center' }}>
+                  No expenses yet
                 </td>
               </tr>
-            ))}
+            ) : (
+              expenses.map((e) => (
+                <tr key={e._id}>
+                  <td>{e.quantity}</td>
+                  <td>{e.category}</td>
+                  <td>₹{e.amount}</td>
+                  <td>{new Date(e.date).toLocaleDateString()}</td>
+                  <td>{e.notes}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    {e.Image ? (
+                      <img
+                        src={e.Image}
+                        alt="Bill"
+                        className="bill-thumb"
+                        onClick={() => setPreviewImage(e.Image)}
+                      />
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="btn-delete"
+                      onClick={() => remove(e._id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
 
+      {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div className="preview" onClick={() => setPreviewImage(null)}>
+        <div
+          className="preview-overlay"
+          onClick={() => setPreviewImage(null)}
+        >
           <img src={previewImage} alt="Preview" />
         </div>
       )}
