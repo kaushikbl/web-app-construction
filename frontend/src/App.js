@@ -27,6 +27,9 @@ function App() {
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
 
+  /* EDIT STATE */
+  const [editing, setEditing] = useState(null);
+
   const [form, setForm] = useState({
     quantity: '',
     category: '',
@@ -51,6 +54,7 @@ function App() {
     setExpenses(res.data);
   };
 
+  /* ADD */
   const add = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Please fill required fields');
@@ -62,7 +66,40 @@ function App() {
 
     const res = await axios.post(`${API}/expenses`, fd);
     setExpenses((prev) => [res.data, ...prev]);
+    resetForm();
+  };
 
+  /* EDIT */
+  const openEdit = (exp) => {
+    setEditing(exp);
+    setForm({
+      quantity: exp.quantity,
+      category: exp.category,
+      group: exp.group,
+      amount: exp.amount,
+      notes: exp.notes || '',
+      Image: null,
+    });
+  };
+
+  const update = async () => {
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
+
+    const res = await axios.put(
+      `${API}/expenses/${editing._id}`,
+      fd
+    );
+
+    setExpenses((prev) =>
+      prev.map((e) => (e._id === editing._id ? res.data : e))
+    );
+
+    setEditing(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setForm({
       quantity: '',
       category: '',
@@ -71,9 +108,8 @@ function App() {
       notes: '',
       Image: null,
     });
-
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) fileInput.value = '';
+    const f = document.querySelector('input[type="file"]');
+    if (f) f.value = '';
   };
 
   const remove = async (id) => {
@@ -82,20 +118,22 @@ function App() {
     setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
-  /* ---------- MONTH FILTER ---------- */
+  /* MONTH FILTER */
   const filteredExpenses = selectedMonth
     ? expenses.filter((e) => {
         const d = new Date(e.date);
         return (
-          d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') ===
+          d.getFullYear() +
+            '-' +
+            String(d.getMonth() + 1).padStart(2, '0') ===
           selectedMonth
         );
       })
     : expenses;
 
-  /* ---------- METRICS ---------- */
+  /* METRICS */
   const total = filteredExpenses.reduce(
-    (sum, e) => sum + Number(e.amount || 0),
+    (s, e) => s + Number(e.amount || 0),
     0
   );
 
@@ -104,9 +142,8 @@ function App() {
     return acc;
   }, {});
 
-  const maxGroupValue = Math.max(...Object.values(groupTotals), 1);
+  const maxGroup = Math.max(...Object.values(groupTotals), 1);
 
-  /* ---------- AVAILABLE MONTHS ---------- */
   const months = [
     ...new Set(
       expenses.map((e) => {
@@ -124,7 +161,7 @@ function App() {
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* MONTH SELECTOR */}
+      {/* MONTH SELECT */}
       <div className="form-row">
         <select
           value={selectedMonth}
@@ -145,12 +182,16 @@ function App() {
       {/* SUMMARY */}
       <div className="form-row">
         <SummaryCard label="💰 Total Spent" value={`₹${total}`} />
-        <SummaryCard label="📊 Entries" value={filteredExpenses.length} />
+        <SummaryCard
+          label="📊 Entries"
+          value={filteredExpenses.length}
+        />
       </div>
 
-      {/* ADD EXPENSE */}
+      {/* ADD / EDIT FORM */}
       <div style={{ background: 'white', padding: 15, borderRadius: 8 }}>
-        <h3>Add Expense</h3>
+        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+
         <div className="form-row">
           <input
             type="number"
@@ -212,58 +253,72 @@ function App() {
               setForm({ ...form, Image: e.target.files[0] })
             }
           />
-          <button className="btn-add" onClick={add}>
-            Add Expense
-          </button>
+
+          {editing ? (
+            <>
+              <button className="btn-add" onClick={update}>
+                Update
+              </button>
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  setEditing(null);
+                  resetForm();
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button className="btn-add" onClick={add}>
+              Add Expense
+            </button>
+          )}
         </div>
       </div>
 
       {/* CATEGORY PROGRESS */}
-      <h3 style={{ marginTop: 25 }}>Category Wise Expenses</h3>
-      <div>
-        {Object.entries(groupTotals).map(([g, amt]) => (
+      <h3 style={{ marginTop: 20 }}>Category Wise Expenses</h3>
+      {Object.entries(groupTotals).map(([g, amt]) => (
+        <div
+          key={g}
+          style={{
+            background: 'white',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 8,
+          }}
+        >
           <div
-            key={g}
             style={{
-              background: 'white',
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 10,
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>
+              {CATEGORY_ICONS[g] || '📦'} {g}
+            </span>
+            <strong>₹{amt}</strong>
+          </div>
+          <div
+            style={{
+              height: 8,
+              background: '#e9ecef',
+              borderRadius: 4,
+              marginTop: 5,
             }}
           >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: 6,
-              }}
-            >
-              <span>
-                {CATEGORY_ICONS[g] || '📦'} {g}
-              </span>
-              <strong>₹{amt}</strong>
-            </div>
-
-            {/* PROGRESS BAR */}
-            <div
-              style={{
-                height: 8,
-                background: '#e9ecef',
+                width: `${(amt / maxGroup) * 100}%`,
+                height: '100%',
+                background: '#28a745',
                 borderRadius: 4,
               }}
-            >
-              <div
-                style={{
-                  width: `${(amt / maxGroupValue) * 100}%`,
-                  height: '100%',
-                  background: '#28a745',
-                  borderRadius: 4,
-                }}
-              />
-            </div>
+            />
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       {/* TABLE */}
       <table className="expense-table">
@@ -297,7 +352,7 @@ function App() {
                 {e.Image ? (
                   <img
                     src={e.Image}
-                    alt="Bill"
+                    alt=""
                     className="bill-thumb"
                     onClick={() => setPreviewImage(e.Image)}
                   />
@@ -306,6 +361,12 @@ function App() {
                 )}
               </td>
               <td>
+                <button
+                  className="btn-add"
+                  onClick={() => openEdit(e)}
+                >
+                  Edit
+                </button>{' '}
                 <button
                   className="btn-delete"
                   onClick={() => remove(e._id)}
@@ -333,7 +394,7 @@ function App() {
         >
           <img
             src={previewImage}
-            alt="Preview"
+            alt=""
             style={{
               maxWidth: '90%',
               maxHeight: '90%',
