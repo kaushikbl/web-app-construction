@@ -30,7 +30,6 @@ mongoose.connect(mongoUri)
  const expenseSchema = new mongoose.Schema({
   quantity: { type: String, required: true },
   category: { type: String, required: true },
-  group: { type: String, required: true },
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
   notes: { type: String },
@@ -54,11 +53,9 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
     const host = `${req.protocol}://${req.get('host')}`;
-
     const expense = new Expense({
       quantity: req.body.quantity,
       category: req.body.category,
-      group: req.body.group, 
       amount: req.body.amount,
       notes: req.body.notes || '',
     //  Image: req.file ? `${host}/uploads/${req.file.filename}` : null,
@@ -159,14 +156,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
   try {
     const cats = await Category.find().sort({ name: 1 });
-
-    const grouped = cats.reduce((acc, cat) => {
-      acc[cat.group] = acc[cat.group] || [];
-      acc[cat.group].push(cat);
-      return acc;
-    }, {});
-
-    res.json(grouped);
+    res.json(cats);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -287,11 +277,9 @@ app.get('/api/seed/categories', async (req, res) => {
         { name: 'Miscellaneous', group: 'Transport & Miscellaneous' }
     ]
   };
-    
-    await Category.deleteMany();
-    await Category.insertMany(defaults);
 
-    res.json({ message: 'Categories seeded successfully!' });
+    await Category.insertMany(defaults, { ordered: false });
+    res.json({ message: 'Categories seeded!' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: err.message });

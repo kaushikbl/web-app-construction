@@ -96,16 +96,14 @@ function App() {
         />
         <select
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group, })}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
-          <option value={cat.name} data-group={group}>
-             {cat.name} 
-             </option>
+          <option value="">Select Category</option>
 
           {Object.entries(categories).map(([group, items]) => (
             <optgroup key={group} label={group}>
-              {items.map((cat) => (
-              <option key={cat._id} value={cat.name} data-group={group}>
+              {categories.map((cat) => (
+              <option key={cat._id} value={cat.name}>
               {cat.name}
               </option>
             ))}
@@ -128,8 +126,6 @@ function App() {
           type="file"
           onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
         />
-        
-
         <button className="btn-add" onClick={add}>
           Add
         </button>
