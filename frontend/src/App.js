@@ -4,7 +4,7 @@ import './App.css';
 
 const API = '/api';
 
-/* ICONS */
+/* CATEGORY ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -45,6 +45,38 @@ function App() {
   const loadExpenses = async () => {
     const res = await axios.get(`${API}/expenses`);
     setExpenses(res.data);
+  };
+
+  /* ADD EXPENSE */
+  const add = async () => {
+    if (!form.quantity || !form.category || !form.group || !form.amount) {
+      alert('Please fill required fields');
+      return;
+    }
+
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
+
+    const res = await axios.post(`${API}/expenses`, fd);
+    setExpenses((prev) => [res.data, ...prev]);
+
+    setForm({
+      quantity: '',
+      category: '',
+      group: '',
+      amount: '',
+      notes: '',
+      Image: null,
+    });
+
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('Delete this expense?')) return;
+    await axios.delete(`${API}/expenses/${id}`);
+    setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
   /* MONTH FILTER */
@@ -88,32 +120,23 @@ function App() {
 
   return (
     <div className="container">
-      {/* TOP DASHBOARD ROW */}
-      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-        {/* GREETING CARD */}
-        <div style={card}>
-          <h3 style={{ marginBottom: 5 }}>Good Morning 👋</h3>
-          <strong>Kaushik</strong>
-          <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-            Track your construction expenses easily
-          </div>
-        </div>
+      <h1>Expense Dashboard</h1>
 
-        {/* BUDGET CARD */}
-        <div style={card}>
-          <div style={{ fontSize: 12, color: '#777' }}>
-            Budget vs Expense
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>
-            ₹{totalSpent}
-          </div>
-          <div style={{ fontSize: 12, color: '#28a745' }}>
-            Total Spent
-          </div>
-        </div>
+      {/* TOP CARDS */}
+      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+        <DashboardCard
+          title="Good Morning 👋"
+          value="Kaushik"
+          subtitle="Track your construction expenses"
+        />
+        <DashboardCard
+          title="Budget vs Expense"
+          value={`₹${totalSpent}`}
+          subtitle="Total Spent"
+        />
       </div>
 
-      {/* MONTH SELECTOR */}
+      {/* MONTH SELECT */}
       <div className="form-row">
         <select
           value={selectedMonth}
@@ -131,6 +154,84 @@ function App() {
         </select>
       </div>
 
+      {/* ADD EXPENSE FORM (RESTORED ✅) */}
+      <div
+        style={{
+          background: 'white',
+          padding: 15,
+          borderRadius: 8,
+          marginBottom: 20,
+        }}
+      >
+        <h3>Add Expense</h3>
+
+        <div className="form-row">
+          <input
+            type="number"
+            placeholder="Quantity"
+            value={form.quantity}
+            onChange={(e) =>
+              setForm({ ...form, quantity: e.target.value })
+            }
+          />
+
+          <select
+            value={form.category}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                category: e.target.value,
+                group: e.target.selectedOptions[0].dataset.group,
+              })
+            }
+          >
+            <option value="">Select Category</option>
+            {Object.entries(categories).map(([g, items]) => (
+              <optgroup key={g} label={g}>
+                {items.map((c) => (
+                  <option
+                    key={c._id}
+                    value={c.name}
+                    data-group={g}
+                  >
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+          />
+
+          <input
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) =>
+              setForm({ ...form, notes: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="form-row">
+          <input
+            type="file"
+            onChange={(e) =>
+              setForm({ ...form, Image: e.target.files[0] })
+            }
+          />
+          <button className="btn-add" onClick={add}>
+            Add Expense
+          </button>
+        </div>
+      </div>
+
       {/* CATEGORY CARDS */}
       <h3>Category Wise Expenses</h3>
       <div
@@ -142,14 +243,19 @@ function App() {
         }}
       >
         {Object.entries(categoryTotals).map(([g, amt]) => (
-          <div key={g} style={card}>
-            <div style={{ fontSize: 14 }}>
+          <div
+            key={g}
+            style={{
+              background: 'white',
+              padding: 15,
+              borderRadius: 8,
+            }}
+          >
+            <div>
               {CATEGORY_ICONS[g] || '📦'} {g}
             </div>
-
             <strong>₹{amt}</strong>
 
-            {/* PROGRESS */}
             <div
               style={{
                 height: 6,
@@ -181,6 +287,7 @@ function App() {
             <th>Amount</th>
             <th>Date</th>
             <th>Bill</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -208,6 +315,14 @@ function App() {
                 ) : (
                   '—'
                 )}
+              </td>
+              <td>
+                <button
+                  className="btn-delete"
+                  onClick={() => remove(e._id)}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
@@ -242,12 +357,20 @@ function App() {
   );
 }
 
-/* CARD STYLE */
-const card = {
-  background: 'white',
-  padding: 15,
-  borderRadius: 10,
-  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-};
+/* SMALL DASHBOARD CARD */
+const DashboardCard = ({ title, value, subtitle }) => (
+  <div
+    style={{
+      background: 'white',
+      padding: 15,
+      borderRadius: 8,
+      flex: 1,
+    }}
+  >
+    <div style={{ fontSize: 14 }}>{title}</div>
+    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{value}</div>
+    <div style={{ fontSize: 12, color: '#777' }}>{subtitle}</div>
+  </div>
+);
 
 export default App;
