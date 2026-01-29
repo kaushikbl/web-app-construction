@@ -61,7 +61,7 @@ function App() {
 
     try {
       const res = await axios.post(`${API}/expenses`, formData);
-      setExpenses(prev => [res.data, ...prev]);
+      setExpenses((prev) => [res.data, ...prev]);
 
       setForm({
         quantity: '',
@@ -84,7 +84,7 @@ function App() {
     if (!window.confirm('Delete this expense?')) return;
     try {
       await axios.delete(`${API}/expenses/${id}`);
-      setExpenses(prev => prev.filter(e => e._id !== id));
+      setExpenses((prev) => prev.filter((e) => e._id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -195,7 +195,23 @@ function App() {
               expenses.map((e) => (
                 <tr key={e._id}>
                   <td>{e.quantity}</td>
-                  <td>{e.category}</td>
+
+                  {/* ✅ CATEGORY GROUP + CATEGORY */}
+                  <td>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: '#777',
+                        marginBottom: '2px',
+                      }}
+                    >
+                      {e.group}
+                    </div>
+                    <div style={{ fontWeight: 600 }}>
+                      {e.category}
+                    </div>
+                  </td>
+
                   <td>₹{e.amount}</td>
                   <td>{new Date(e.date).toLocaleDateString()}</td>
                   <td>{e.notes}</td>
@@ -204,8 +220,14 @@ function App() {
                       <img
                         src={e.Image}
                         alt="Bill"
-                        className="bill-thumb"
-                        onClick={() => setPreviewImage(e.Image)}
+                        style={{
+                          width: '50px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                        }}
+                        onClick={() =>
+                          setPreviewImage(e.Image)
+                        }
                       />
                     ) : (
                       '—'
@@ -229,10 +251,26 @@ function App() {
       {/* IMAGE PREVIEW */}
       {previewImage && (
         <div
-          className="preview-overlay"
           onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
         >
-          <img src={previewImage} alt="Preview" />
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '8px',
+            }}
+          />
         </div>
       )}
     </div>
