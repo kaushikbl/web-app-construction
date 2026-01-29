@@ -125,23 +125,23 @@ function App() {
           }
         >
           <option value="">Select Category</option>
-
-          {Object.entries(categories).map(([group, items]) =>
-            Array.isArray(items) ? (
-              <optgroup key={group} label={group}>
-                {items.map((cat) => (
-                  <option
-                    key={cat._id}
-                    value={cat.name}
-                    data-group={group}
-                  >
-                    {cat.name}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null
-          )}
-        </select>
+          
+          {Object.keys(categories).length > 0 &&
+  Object.entries(categories).map(([group, items]) =>
+    Array.isArray(items) ? (
+      <optgroup key={group} label={group}>
+        {items.map((cat) => (
+          <option
+            key={cat._id}
+            value={cat.name}
+            data-group={group}
+          >
+            {cat.name}
+          </option>
+        ))}
+      </optgroup>
+    ) : null
+  )}
 
         <input
           type="number"
