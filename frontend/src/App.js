@@ -56,7 +56,7 @@ function App() {
     setCategories(res.data || {});
   };
 
-  /* ===== ADD / UPDATE (FIXED) ===== */
+  /* ===== ADD / UPDATE ===== */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Fill required fields');
@@ -70,10 +70,7 @@ function App() {
     fd.append('amount', form.amount);
     fd.append('notes', form.notes || '');
 
-    // Only append image if re-selected
-    if (form.Image) {
-      fd.append('Image', form.Image);
-    }
+    if (form.Image) fd.append('Image', form.Image);
 
     try {
       if (editing) {
@@ -82,9 +79,7 @@ function App() {
           fd
         );
         setExpenses((prev) =>
-          prev.map((e) =>
-            e._id === editing._id ? res.data : e
-          )
+          prev.map((e) => (e._id === editing._id ? res.data : e))
         );
         setEditing(null);
       } else {
@@ -229,10 +224,7 @@ function App() {
       <div style={row}>
         <div>
           <label>Month</label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          >
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
             <option value="">All</option>
             {months.map((m) => (
               <option key={m} value={m}>
@@ -260,13 +252,7 @@ function App() {
         <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
         <div className="form-row">
-          <input
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: e.target.value })
-            }
-          />
+          <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
 
           <select
             value={form.category}
@@ -290,63 +276,21 @@ function App() {
             ))}
           </select>
 
-          <input
-            type="number"
-            placeholder="Amount"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-          />
-
-          <input
-            placeholder="Notes"
-            value={form.notes}
-            onChange={(e) =>
-              setForm({ ...form, notes: e.target.value })
-            }
-          />
+          <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </div>
 
         <div className="form-row">
-          <input
-            type="file"
-            onChange={(e) =>
-              setForm({ ...form, Image: e.target.files[0] })
-            }
-          />
-
+          <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
           <button className="btn-add" onClick={submit}>
             {editing ? 'Update' : 'Add'}
           </button>
-
           {editing && (
             <button className="btn-delete" onClick={() => setEditing(null)}>
               Cancel
             </button>
           )}
         </div>
-      </div>
-
-      {/* CATEGORY SUMMARY */}
-      <h3>Category Wise Expenses</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-        {sortedCategories.map(([g, amt]) => (
-          <div key={g} style={card}>
-            <div style={between}>
-              <span>{CATEGORY_ICONS[g]} {g}</span>
-              <strong>₹{amt.toLocaleString()}</strong>
-            </div>
-            <div style={progressBg}>
-              <div
-                style={{
-                  ...progressBar,
-                  width: `${(amt / totalSpent) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* EXPENSE TABLE */}
@@ -372,9 +316,7 @@ function App() {
                   <div style={muted}>{e.group}</div>
                   <strong>{e.category}</strong>
                 </td>
-                <td style={{ textAlign: 'right' }}>
-                  ₹{Number(e.amount).toLocaleString()}
-                </td>
+                <td style={{ textAlign: 'right' }}>₹{Number(e.amount).toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td style={muted}>{e.notes || '—'}</td>
                 <td>
@@ -383,20 +325,19 @@ function App() {
                       src={e.Image}
                       alt="Bill"
                       className="bill-thumb"
-                      title="Click to view bill"
-                      onClick={() => setPreviewImage(e.Image)}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setPreviewImage(e.Image);
+                      }}
                     />
                   ) : (
                     '—'
                   )}
                 </td>
                 <td>
-                  <button className="btn-add" onClick={() => editExpense(e)}>
-                    Edit
-                  </button>{' '}
-                  <button className="btn-delete" onClick={() => remove(e._id)}>
-                    Delete
-                  </button>
+                  <button className="btn-add" onClick={() => editExpense(e)}>Edit</button>{' '}
+                  <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -406,8 +347,16 @@ function App() {
 
       {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} alt="Preview" style={previewImg} />
+        <div
+          style={{ ...overlay, zIndex: 9999 }}
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={previewImg}
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
@@ -456,9 +405,6 @@ const CircularGauge = ({ percent }) => (
 const row = { display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' };
 const card = { background: 'white', padding: 16, borderRadius: 10 };
 const muted = { fontSize: 12, color: '#777' };
-const between = { display: 'flex', justifyContent: 'space-between' };
-const progressBg = { height: 6, background: '#eee', borderRadius: 4, marginTop: 6 };
-const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
 
