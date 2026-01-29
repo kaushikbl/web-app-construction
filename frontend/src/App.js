@@ -4,8 +4,14 @@ import './App.css';
 
 const API = '/api';
 
-/* 🔧 SET YOUR TOTAL PROJECT BUDGET HERE */
-const PROJECT_BUDGET = 1650000; // 1.65 crores
+/* ===== PROJECT CONFIG ===== */
+const PROJECT_BUDGET = 11200000; // Approved / working budget
+const PROJECT_INFO = {
+  name: 'Residential House Construction',
+  location: 'Bengaluru',
+  type: 'Independent House (Split / G+1 / G+2 / G+3)',
+  estimatedCost: 11200000, // Estimated total cost
+};
 
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
@@ -54,7 +60,7 @@ function App() {
     setCategories(res.data || {});
   };
 
-  /* ADD / UPDATE */
+  /* ===== ADD / UPDATE ===== */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Fill required fields');
@@ -109,7 +115,7 @@ function App() {
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* 🔍 FILTER (Month + Notes) */
+  /* ===== FILTERS ===== */
   const filteredExpenses = expenses.filter((e) => {
     const d = new Date(e.date);
     const monthOK = selectedMonth
@@ -124,18 +130,26 @@ function App() {
     return monthOK && noteOK;
   });
 
-  /* 💰 TOTAL PROJECT SPENT (NOT MONTHLY) */
+  /* ===== PROJECT METRICS ===== */
   const totalProjectSpent = expenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
   );
+
+  const remainingBudget = PROJECT_BUDGET - totalProjectSpent;
 
   const projectPercent = Math.min(
     Math.round((totalProjectSpent / PROJECT_BUDGET) * 100),
     100
   );
 
-  /* CATEGORY TOTALS (filtered view) */
+  const projectStatus =
+    projectPercent >= 100
+      ? 'Over Budget'
+      : projectPercent >= 85
+      ? 'At Risk'
+      : 'On Track';
+
   const categoryTotals = filteredExpenses.reduce((a, e) => {
     a[e.group] = (a[e.group] || 0) + Number(e.amount || 0);
     return a;
@@ -155,27 +169,82 @@ function App() {
   return (
     <div
       className="container"
-      style={{
-        maxWidth: '1200px',
-        width: '100%',
-        margin: '0 auto',
-        boxSizing: 'border-box',
-      }}
+      style={{ maxWidth: 1200, width: '100%', margin: '0 auto' }}
     >
       <h1>Construction Expense Dashboard</h1>
 
-      {/* TOP ROW */}
+      {/* ===== TOP ROW ===== */}
       <div style={row}>
+        {/* PROJECT OVERVIEW */}
         <div style={card}>
-          <h3>Project Overview</h3>
-          <strong>Total Budget</strong>
-          <div>₹{PROJECT_BUDGET.toLocaleString()}</div>
+          <h3 style={{ marginBottom: 10 }}>🏗️ Project Overview</h3>
+
+          <div style={overviewRow}>
+            <span>Project Name</span>
+            <strong>{PROJECT_INFO.name}</strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Location</span>
+            <strong>{PROJECT_INFO.location}</strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Project Type</span>
+            <strong>{PROJECT_INFO.type}</strong>
+          </div>
+
+          <hr style={{ margin: '8px 0', borderColor: '#eee' }} />
+
+          <div style={overviewRow}>
+            <span>Estimated Cost</span>
+            <strong>₹{PROJECT_INFO.estimatedCost.toLocaleString()}</strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Approved Budget</span>
+            <strong>₹{PROJECT_BUDGET.toLocaleString()}</strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Total Spent</span>
+            <strong>₹{totalProjectSpent.toLocaleString()}</strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Remaining</span>
+            <strong
+              style={{
+                color: remainingBudget < 0 ? '#dc3545' : '#28a745',
+              }}
+            >
+              ₹{remainingBudget.toLocaleString()}
+            </strong>
+          </div>
+
+          <div style={overviewRow}>
+            <span>Budget Used</span>
+            <strong>{projectPercent}%</strong>
+          </div>
+
+          <div
+            style={{
+              marginTop: 8,
+              fontWeight: 600,
+              color:
+                projectStatus === 'Over Budget'
+                  ? '#dc3545'
+                  : projectStatus === 'At Risk'
+                  ? '#ffc107'
+                  : '#28a745',
+            }}
+          >
+            Status: {projectStatus}
+          </div>
         </div>
 
+        {/* GAUGE */}
         <div style={{ ...card, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: '#777' }}>
-            Project Budget Utilization
-          </div>
           <CircularGauge percent={projectPercent} />
           <div style={{ fontSize: 12 }}>
             ₹{totalProjectSpent.toLocaleString()} spent
@@ -183,7 +252,7 @@ function App() {
         </div>
       </div>
 
-      {/* FILTER BAR */}
+      {/* ===== FILTER BAR ===== */}
       <div style={row}>
         <div style={{ width: 180 }}>
           <label style={label}>Filter by Month</label>
@@ -213,7 +282,7 @@ function App() {
         </div>
       </div>
 
-      {/* ADD / EDIT */}
+      {/* ===== ADD / EDIT ===== */}
       <div style={{ ...card, marginBottom: 25 }}>
         <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
@@ -292,8 +361,8 @@ function App() {
         </div>
       </div>
 
-      {/* CATEGORY GRID */}
-      <h3>Category Wise (Filtered View)</h3>
+      {/* ===== CATEGORY GRID ===== */}
+      <h3>Category Wise Expenses</h3>
       <div
         style={{
           display: 'grid',
@@ -318,72 +387,11 @@ function App() {
           </div>
         ))}
       </div>
-
-      {/* TABLE */}
-      <h3>Transactions</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="expense-table">
-          <thead>
-            <tr>
-              <th>Qty</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Notes</th>
-              <th>Bill</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExpenses.map((e) => (
-              <tr key={e._id}>
-                <td>{e.quantity}</td>
-                <td>
-                  <div style={{ fontSize: 12, color: '#777' }}>
-                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
-                  </div>
-                  <strong>{e.category}</strong>
-                </td>
-                <td>₹{e.amount}</td>
-                <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes || '—'}</td>
-                <td>
-                  {e.Image ? (
-                    <img
-                      src={e.Image}
-                      alt="Bill"
-                      className="bill-thumb"
-                      onClick={() => setPreviewImage(e.Image)}
-                    />
-                  ) : '—'}
-                </td>
-                <td>
-                  <button className="btn-add" onClick={() => editExpense(e)}>
-                    Edit
-                  </button>{' '}
-                  <button
-                    className="btn-delete"
-                    onClick={() => remove(e._id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {previewImage && (
-        <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} alt="Preview" style={previewImg} />
-        </div>
-      )}
     </div>
   );
 }
 
-/* UI HELPERS */
+/* ===== UI HELPERS ===== */
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -436,6 +444,14 @@ const label = {
   display: 'block',
 };
 
+const overviewRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  fontSize: 13,
+  marginBottom: 4,
+  gap: 8,
+};
+
 const progressBg = {
   height: 6,
   background: '#e9ecef',
@@ -447,21 +463,6 @@ const progressBar = {
   height: '100%',
   background: '#28a745',
   borderRadius: 4,
-};
-
-const overlay = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const previewImg = {
-  maxWidth: '90%',
-  maxHeight: '90%',
-  borderRadius: 8,
 };
 
 export default App;
