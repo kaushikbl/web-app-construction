@@ -153,5 +153,5 @@ app.get('/api/seed/categories', async (_, res) => {
 
 /* ===== START ===== */
 app.listen(5000, () =>
-  console.log('🚀 Server running on http://backend:5000')
+  console.log('🚀 Server running on http://localhost:5000')
 );
