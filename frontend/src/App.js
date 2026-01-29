@@ -4,6 +4,23 @@ import './App.css';
 
 const API = '/api';
 
+/* ✅ CATEGORY ICON MAP */
+const CATEGORY_ICONS = {
+  'Foundation & Structure': '🏗️',
+  'Masonry': '🧱',
+  'Roofing': '🏠',
+  'Plumbing': '🚰',
+  'Electrical': '💡',
+  'Carpentry & Wood Work': '🪚',
+  'Flooring': '🪵',
+  'Metal & Fabrication': '🔩',
+  'Exterior Works': '🌳',
+  'Labor & Services': '👷',
+  'Professional & Government': '📄',
+  'Transport & Miscellaneous': '🚚',
+  'Site Preparation': '🚜',
+};
+
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
@@ -87,9 +104,9 @@ function App() {
 
       {/* SUMMARY CARDS */}
       <div className="form-row">
-        <SummaryCard label="Total Spent" value={`₹${total}`} />
-        <SummaryCard label="Entries" value={expenses.length} />
-        <SummaryCard label="Highest Expense" value={`₹${highest}`} />
+        <SummaryCard label="💰 Total Spent" value={`₹${total}`} />
+        <SummaryCard label="📊 Entries" value={expenses.length} />
+        <SummaryCard label="🔥 Highest Expense" value={`₹${highest}`} />
       </div>
 
       {/* ADD EXPENSE */}
@@ -101,7 +118,7 @@ function App() {
           marginBottom: '20px',
         }}
       >
-        <h3 style={{ marginBottom: '10px' }}>Add Expense</h3>
+        <h3>Add Expense</h3>
 
         <div className="form-row">
           <input
@@ -174,7 +191,11 @@ function App() {
       <h3>Category Wise Expenses</h3>
       <div className="form-row">
         {Object.entries(groupTotals).map(([g, amt]) => (
-          <SummaryCard key={g} label={g} value={`₹${amt}`} />
+          <SummaryCard
+            key={g}
+            label={`${CATEGORY_ICONS[g] || '📦'} ${g}`}
+            value={`₹${amt}`}
+          />
         ))}
       </div>
 
@@ -197,7 +218,7 @@ function App() {
               <td>{e.quantity}</td>
               <td>
                 <div style={{ fontSize: '12px', color: '#777' }}>
-                  {e.group}
+                  {(CATEGORY_ICONS[e.group] || '📦')} {e.group}
                 </div>
                 <strong>{e.category}</strong>
               </td>
@@ -259,7 +280,7 @@ function App() {
   );
 }
 
-/* ---------- SMALL CARD ---------- */
+/* ---------- SUMMARY CARD ---------- */
 const SummaryCard = ({ label, value }) => (
   <div
     style={{
