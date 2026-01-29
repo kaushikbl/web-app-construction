@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import './App.css';
 
 const API = '/api';
 
@@ -34,7 +35,7 @@ function App() {
 
   const add = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Fill required fields');
+      alert('Please fill required fields');
       return;
     }
 
@@ -42,7 +43,7 @@ function App() {
     Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
     const res = await axios.post(`${API}/expenses`, fd);
-    setExpenses((p) => [res.data, ...p]);
+    setExpenses((prev) => [res.data, ...prev]);
 
     setForm({
       quantity: '',
@@ -52,51 +53,60 @@ function App() {
       notes: '',
       Image: null,
     });
+
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete expense?')) return;
+    if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
-    setExpenses((p) => p.filter((e) => e._id !== id));
+    setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
-  /* ---------- DASHBOARD CALCULATIONS ---------- */
+  /* ---------- DASHBOARD METRICS ---------- */
 
-  const totalAmount = expenses.reduce(
-    (s, e) => s + Number(e.amount || 0),
+  const total = expenses.reduce(
+    (sum, e) => sum + Number(e.amount || 0),
     0
   );
 
-  const highestExpense =
+  const highest =
     expenses.length > 0
       ? Math.max(...expenses.map((e) => e.amount))
       : 0;
 
-  const categoryTotals = expenses.reduce((acc, e) => {
+  const groupTotals = expenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
     return acc;
   }, {});
 
-  /* ---------- UI ---------- */
-
   return (
-    <div style={page}>
-      <h1 style={{ marginBottom: 20 }}>Expense Dashboard</h1>
+    <div className="container">
+      <h1>Expense Dashboard</h1>
 
-      {/* SUMMARY ROW */}
-      <div style={summaryRow}>
-        <SummaryCard title="Total Spent" value={`₹${totalAmount}`} />
-        <SummaryCard title="Entries" value={expenses.length} />
-        <SummaryCard title="Highest Expense" value={`₹${highestExpense}`} />
+      {/* SUMMARY CARDS */}
+      <div className="form-row">
+        <SummaryCard label="Total Spent" value={`₹${total}`} />
+        <SummaryCard label="Entries" value={expenses.length} />
+        <SummaryCard label="Highest Expense" value={`₹${highest}`} />
       </div>
 
-      {/* ADD EXPENSE CARD */}
-      <div style={card}>
-        <h3>Add Expense</h3>
-        <div style={formGrid}>
+      {/* ADD EXPENSE */}
+      <div
+        style={{
+          background: 'white',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+        }}
+      >
+        <h3 style={{ marginBottom: '10px' }}>Add Expense</h3>
+
+        <div className="form-row">
           <input
-            placeholder="Qty"
             type="number"
+            placeholder="Quantity"
             value={form.quantity}
             onChange={(e) =>
               setForm({ ...form, quantity: e.target.value })
@@ -114,13 +124,13 @@ function App() {
             }
           >
             <option value="">Select Category</option>
-            {Object.entries(categories).map(([g, items]) => (
-              <optgroup key={g} label={g}>
+            {Object.entries(categories).map(([group, items]) => (
+              <optgroup key={group} label={group}>
                 {items.map((c) => (
                   <option
                     key={c._id}
                     value={c.name}
-                    data-group={g}
+                    data-group={group}
                   >
                     {c.name}
                   </option>
@@ -130,8 +140,8 @@ function App() {
           </select>
 
           <input
-            placeholder="Amount"
             type="number"
+            placeholder="Amount"
             value={form.amount}
             onChange={(e) =>
               setForm({ ...form, amount: e.target.value })
@@ -147,173 +157,125 @@ function App() {
           />
         </div>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+        <div className="form-row">
           <input
             type="file"
             onChange={(e) =>
               setForm({ ...form, Image: e.target.files[0] })
             }
           />
-          <button onClick={add} style={addBtn}>
+          <button className="btn-add" onClick={add}>
             Add Expense
           </button>
         </div>
       </div>
 
-      {/* CATEGORY WISE CARDS */}
-      <h3 style={{ marginTop: 30 }}>Category Wise Expenses</h3>
-      <div style={categoryGrid}>
-        {Object.entries(categoryTotals).map(([g, amt]) => (
-          <div key={g} style={categoryCard}>
-            <div style={{ fontSize: 12, color: '#777' }}>{g}</div>
-            <div style={{ fontSize: 18, fontWeight: 'bold' }}>
-              ₹{amt}
-            </div>
-          </div>
+      {/* CATEGORY WISE SUMMARY */}
+      <h3>Category Wise Expenses</h3>
+      <div className="form-row">
+        {Object.entries(groupTotals).map(([g, amt]) => (
+          <SummaryCard key={g} label={g} value={`₹${amt}`} />
         ))}
       </div>
 
       {/* TABLE */}
-      <div style={card}>
-        <table style={table}>
-          <thead>
-            <tr style={thead}>
-              <th>Qty</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Bill</th>
-              <th></th>
+      <table className="expense-table">
+        <thead>
+          <tr>
+            <th>Qty</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Bill</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {expenses.map((e) => (
+            <tr key={e._id}>
+              <td>{e.quantity}</td>
+              <td>
+                <div style={{ fontSize: '12px', color: '#777' }}>
+                  {e.group}
+                </div>
+                <strong>{e.category}</strong>
+              </td>
+              <td>₹{e.amount}</td>
+              <td>
+                {new Date(e.date).toLocaleDateString()}
+              </td>
+              <td>{e.notes}</td>
+              <td>
+                {e.Image ? (
+                  <img
+                    src={e.Image}
+                    alt="Bill"
+                    className="bill-thumb"
+                    onClick={() => setPreviewImage(e.Image)}
+                  />
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td>
+                <button
+                  className="btn-delete"
+                  onClick={() => remove(e._id)}
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {expenses.map((e) => (
-              <tr key={e._id} style={row}>
-                <td>{e.quantity}</td>
-                <td>
-                  <div style={groupText}>{e.group}</div>
-                  <b>{e.category}</b>
-                </td>
-                <td>₹{e.amount}</td>
-                <td>
-                  {new Date(e.date).toLocaleDateString()}
-                </td>
-                <td>
-                  {e.Image ? (
-                    <img
-                      src={e.Image}
-                      alt=""
-                      style={bill}
-                      onClick={() =>
-                        setPreviewImage(e.Image)
-                      }
-                    />
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td>
-                  <button
-                    style={deleteBtn}
-                    onClick={() => remove(e._id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
 
       {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} alt="" style={preview} />
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '8px',
+            }}
+          />
         </div>
       )}
     </div>
   );
 }
 
-/* ---------- SMALL COMPONENT ---------- */
-const SummaryCard = ({ title, value }) => (
-  <div style={summaryCard}>
-    <div style={{ fontSize: 12, color: '#777' }}>{title}</div>
-    <div style={{ fontSize: 20, fontWeight: 'bold' }}>{value}</div>
+/* ---------- SMALL CARD ---------- */
+const SummaryCard = ({ label, value }) => (
+  <div
+    style={{
+      background: 'white',
+      padding: '15px',
+      borderRadius: '8px',
+      flex: 1,
+    }}
+  >
+    <div style={{ fontSize: '12px', color: '#777' }}>
+      {label}
+    </div>
+    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+      {value}
+    </div>
   </div>
 );
-
-/* ---------- STYLES ---------- */
-
-const page = { maxWidth: 1200, margin: '30px auto', fontFamily: 'Arial' };
-const card = {
-  background: '#fff',
-  padding: 16,
-  borderRadius: 10,
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-  marginBottom: 20,
-};
-
-const summaryRow = { display: 'flex', gap: 16 };
-const summaryCard = {
-  flex: 1,
-  background: '#fff',
-  padding: 16,
-  borderRadius: 10,
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-};
-
-const formGrid = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 2fr 1fr 2fr',
-  gap: 10,
-};
-
-const addBtn = {
-  background: '#28a745',
-  color: '#fff',
-  border: 'none',
-  padding: '8px 16px',
-  borderRadius: 6,
-  cursor: 'pointer',
-};
-
-const categoryGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-  gap: 16,
-};
-
-const categoryCard = {
-  background: '#fff',
-  padding: 16,
-  borderRadius: 10,
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-};
-
-const table = { width: '100%', borderCollapse: 'collapse' };
-const thead = { background: '#f4f6f8' };
-const row = { borderTop: '1px solid #eee' };
-const groupText = { fontSize: 12, color: '#777' };
-const bill = { width: 40, cursor: 'pointer' };
-const deleteBtn = {
-  background: '#dc3545',
-  color: '#fff',
-  border: 'none',
-  padding: '5px 10px',
-  borderRadius: 5,
-};
-
-const overlay = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.8)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-};
-
-const preview = { maxWidth: '90%', maxHeight: '90%' };
 
 export default App;
