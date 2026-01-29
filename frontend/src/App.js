@@ -4,7 +4,7 @@ import './App.css';
 
 const API = '/api';
 
-/* CATEGORY ICONS */
+/* ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -15,9 +15,12 @@ const CATEGORY_ICONS = {
   'Transport & Miscellaneous': '🚚',
   'Professional & Government': '📄',
   'Site Preparation': '🚜',
+  'Carpentry & Wood Work': '🪚',
+  'Metal & Fabrication': '🔩',
+  'Exterior Works': '🌳',
 };
 
-const MONTH_BUDGET = 100000; // 👈 change your monthly budget here
+const MONTH_BUDGET = 16000000; // change if needed
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -156,31 +159,33 @@ function App() {
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* TOP DASHBOARD */}
-      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-        <DashboardCard
-          title="Good Morning 👋"
-          value="Kaushik"
-          subtitle="Track your construction expenses"
-        />
-
-        {/* CIRCULAR BUDGET GAUGE */}
+      {/* ================= TOP ROW ================= */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
+          <h3>Good Morning 👋</h3>
+          <strong>Kaushik</strong>
+          <div style={{ fontSize: 12, color: '#777' }}>
+            Track your construction expenses
+          </div>
+        </div>
+
+        <div style={{ ...card, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: '#777' }}>
             Budget vs Expense
           </div>
           <CircularGauge percent={budgetPercent} />
-          <div style={{ fontSize: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 12 }}>
             ₹{totalSpent} / ₹{MONTH_BUDGET}
           </div>
         </div>
       </div>
 
-      {/* MONTH SELECT */}
-      <div className="form-row">
+      {/* ================= FILTER + ADD ================= */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
+          style={{ flex: 1 }}
         >
           <option value="">All Months</option>
           {months.map((m) => (
@@ -192,137 +197,132 @@ function App() {
             </option>
           ))}
         </select>
-      </div>
 
-      {/* ADD / EDIT FORM */}
-      <div style={{ background: 'white', padding: 15, borderRadius: 8 }}>
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+        <div style={{ ...card, flex: 3 }}>
+          <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
-        <div className="form-row">
-          <input
-            type="number"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: e.target.value })
-            }
-          />
+          <div className="form-row">
+            <input
+              type="number"
+              placeholder="Quantity"
+              value={form.quantity}
+              onChange={(e) =>
+                setForm({ ...form, quantity: e.target.value })
+              }
+            />
 
-          <select
-            value={form.category}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                category: e.target.value,
-                group: e.target.selectedOptions[0].dataset.group,
-              })
-            }
-          >
-            <option value="">Select Category</option>
-            {Object.entries(categories).map(([g, items]) => (
-              <optgroup key={g} label={g}>
-                {items.map((c) => (
-                  <option
-                    key={c._id}
-                    value={c.name}
-                    data-group={g}
-                  >
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            placeholder="Amount"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-          />
-
-          <input
-            placeholder="Notes"
-            value={form.notes}
-            onChange={(e) =>
-              setForm({ ...form, notes: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="form-row">
-          <input
-            type="file"
-            onChange={(e) =>
-              setForm({ ...form, Image: e.target.files[0] })
-            }
-          />
-
-          <button className="btn-add" onClick={submit}>
-            {editing ? 'Update Expense' : 'Add Expense'}
-          </button>
-
-          {editing && (
-            <button
-              className="btn-delete"
-              onClick={() => {
-                setEditing(null);
-                resetForm();
-              }}
+            <select
+              value={form.category}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  category: e.target.value,
+                  group: e.target.selectedOptions[0].dataset.group,
+                })
+              }
             >
-              Cancel
-            </button>
-          )}
-        </div>
-      </div>
+              <option value="">Select Category</option>
+              {Object.entries(categories).map(([g, items]) => (
+                <optgroup key={g} label={g}>
+                  {items.map((c) => (
+                    <option
+                      key={c._id}
+                      value={c.name}
+                      data-group={g}
+                    >
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
 
-      {/* CATEGORY PROGRESS */}
-      <h3 style={{ marginTop: 20 }}>Category Wise Expenses</h3>
-      {Object.entries(categoryTotals).map(([g, amt]) => (
-        <div
-          key={g}
-          style={{
-            background: 'white',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span>
-              {CATEGORY_ICONS[g] || '📦'} {g}
-            </span>
-            <strong>₹{amt}</strong>
-          </div>
+            <input
+              type="number"
+              placeholder="Amount"
+              value={form.amount}
+              onChange={(e) =>
+                setForm({ ...form, amount: e.target.value })
+              }
+            />
 
-          <div
-            style={{
-              height: 6,
-              background: '#e9ecef',
-              borderRadius: 4,
-              marginTop: 5,
-            }}
-          >
-            <div
-              style={{
-                width: `${(amt / maxCategory) * 100}%`,
-                height: '100%',
-                background: '#28a745',
-                borderRadius: 4,
-              }}
+            <input
+              placeholder="Notes"
+              value={form.notes}
+              onChange={(e) =>
+                setForm({ ...form, notes: e.target.value })
+              }
             />
           </div>
-        </div>
-      ))}
 
-      {/* RECENT TRANSACTIONS */}
+          <div className="form-row">
+            <input
+              type="file"
+              onChange={(e) =>
+                setForm({ ...form, Image: e.target.files[0] })
+              }
+            />
+
+            <button className="btn-add" onClick={submit}>
+              {editing ? 'Update' : 'Add'}
+            </button>
+
+            {editing && (
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  setEditing(null);
+                  resetForm();
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ================= CATEGORY WISE ================= */}
+      <h3>Category Wise Expenses</h3>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 16,
+          marginBottom: 25,
+        }}
+      >
+        {Object.entries(categoryTotals).map(([g, amt]) => (
+          <div key={g} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>
+                {CATEGORY_ICONS[g] || '📦'} {g}
+              </span>
+              <strong>₹{amt}</strong>
+            </div>
+
+            <div
+              style={{
+                height: 6,
+                background: '#e9ecef',
+                borderRadius: 4,
+                marginTop: 6,
+              }}
+            >
+              <div
+                style={{
+                  width: `${(amt / maxCategory) * 100}%`,
+                  height: '100%',
+                  background: '#28a745',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ================= RECENT TRANSACTIONS ================= */}
       <h3>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
@@ -408,15 +408,7 @@ function App() {
   );
 }
 
-/* ---------- COMPONENTS ---------- */
-
-const DashboardCard = ({ title, value, subtitle }) => (
-  <div style={card}>
-    <div style={{ fontSize: 14 }}>{title}</div>
-    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{value}</div>
-    <div style={{ fontSize: 12, color: '#777' }}>{subtitle}</div>
-  </div>
-);
+/* ===== COMPONENTS ===== */
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -448,7 +440,6 @@ const CircularGauge = ({ percent }) => (
   </div>
 );
 
-/* ---------- STYLES ---------- */
 const card = {
   background: 'white',
   padding: 15,
