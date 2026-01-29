@@ -4,7 +4,7 @@ import './App.css';
 
 const API = '/api';
 
-/* ✅ CATEGORY ICON MAP */
+/* CATEGORY ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -25,6 +25,7 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
 
   const [form, setForm] = useState({
     quantity: '',
@@ -81,45 +82,75 @@ function App() {
     setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
-  /* ---------- DASHBOARD METRICS ---------- */
+  /* ---------- MONTH FILTER ---------- */
+  const filteredExpenses = selectedMonth
+    ? expenses.filter((e) => {
+        const d = new Date(e.date);
+        return (
+          d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') ===
+          selectedMonth
+        );
+      })
+    : expenses;
 
-  const total = expenses.reduce(
+  /* ---------- METRICS ---------- */
+  const total = filteredExpenses.reduce(
     (sum, e) => sum + Number(e.amount || 0),
     0
   );
 
-  const highest =
-    expenses.length > 0
-      ? Math.max(...expenses.map((e) => e.amount))
-      : 0;
-
-  const groupTotals = expenses.reduce((acc, e) => {
+  const groupTotals = filteredExpenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
     return acc;
   }, {});
+
+  const maxGroupValue = Math.max(...Object.values(groupTotals), 1);
+
+  /* ---------- AVAILABLE MONTHS ---------- */
+  const months = [
+    ...new Set(
+      expenses.map((e) => {
+        const d = new Date(e.date);
+        return (
+          d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0')
+        );
+      })
+    ),
+  ];
 
   return (
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* SUMMARY CARDS */}
+      {/* MONTH SELECTOR */}
+      <div className="form-row">
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+        >
+          <option value="">All Months</option>
+          {months.map((m) => (
+            <option key={m} value={m}>
+              {new Date(m + '-01').toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* SUMMARY */}
       <div className="form-row">
         <SummaryCard label="💰 Total Spent" value={`₹${total}`} />
-        <SummaryCard label="📊 Entries" value={expenses.length} />
-        <SummaryCard label="🔥 Highest Expense" value={`₹${highest}`} />
+        <SummaryCard label="📊 Entries" value={filteredExpenses.length} />
       </div>
 
       {/* ADD EXPENSE */}
-      <div
-        style={{
-          background: 'white',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-        }}
-      >
+      <div style={{ background: 'white', padding: 15, borderRadius: 8 }}>
         <h3>Add Expense</h3>
-
         <div className="form-row">
           <input
             type="number"
@@ -141,13 +172,13 @@ function App() {
             }
           >
             <option value="">Select Category</option>
-            {Object.entries(categories).map(([group, items]) => (
-              <optgroup key={group} label={group}>
+            {Object.entries(categories).map(([g, items]) => (
+              <optgroup key={g} label={g}>
                 {items.map((c) => (
                   <option
                     key={c._id}
                     value={c.name}
-                    data-group={group}
+                    data-group={g}
                   >
                     {c.name}
                   </option>
@@ -187,15 +218,50 @@ function App() {
         </div>
       </div>
 
-      {/* CATEGORY WISE SUMMARY */}
-      <h3>Category Wise Expenses</h3>
-      <div className="form-row">
+      {/* CATEGORY PROGRESS */}
+      <h3 style={{ marginTop: 25 }}>Category Wise Expenses</h3>
+      <div>
         {Object.entries(groupTotals).map(([g, amt]) => (
-          <SummaryCard
+          <div
             key={g}
-            label={`${CATEGORY_ICONS[g] || '📦'} ${g}`}
-            value={`₹${amt}`}
-          />
+            style={{
+              background: 'white',
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: 6,
+              }}
+            >
+              <span>
+                {CATEGORY_ICONS[g] || '📦'} {g}
+              </span>
+              <strong>₹{amt}</strong>
+            </div>
+
+            {/* PROGRESS BAR */}
+            <div
+              style={{
+                height: 8,
+                background: '#e9ecef',
+                borderRadius: 4,
+              }}
+            >
+              <div
+                style={{
+                  width: `${(amt / maxGroupValue) * 100}%`,
+                  height: '100%',
+                  background: '#28a745',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+          </div>
         ))}
       </div>
 
@@ -213,12 +279,12 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {expenses.map((e) => (
+          {filteredExpenses.map((e) => (
             <tr key={e._id}>
               <td>{e.quantity}</td>
               <td>
-                <div style={{ fontSize: '12px', color: '#777' }}>
-                  {(CATEGORY_ICONS[e.group] || '📦')} {e.group}
+                <div style={{ fontSize: 12, color: '#777' }}>
+                  {CATEGORY_ICONS[e.group] || '📦'} {e.group}
                 </div>
                 <strong>{e.category}</strong>
               </td>
@@ -271,7 +337,7 @@ function App() {
             style={{
               maxWidth: '90%',
               maxHeight: '90%',
-              borderRadius: '8px',
+              borderRadius: 8,
             }}
           />
         </div>
@@ -280,22 +346,18 @@ function App() {
   );
 }
 
-/* ---------- SUMMARY CARD ---------- */
+/* SUMMARY CARD */
 const SummaryCard = ({ label, value }) => (
   <div
     style={{
       background: 'white',
-      padding: '15px',
-      borderRadius: '8px',
+      padding: 15,
+      borderRadius: 8,
       flex: 1,
     }}
   >
-    <div style={{ fontSize: '12px', color: '#777' }}>
-      {label}
-    </div>
-    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-      {value}
-    </div>
+    <div style={{ fontSize: 12, color: '#777' }}>{label}</div>
+    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{value}</div>
   </div>
 );
 
