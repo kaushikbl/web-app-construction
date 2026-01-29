@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import './App.css';
 
 const API = '/api';
 
@@ -25,24 +24,15 @@ function App() {
   }, []);
 
   const loadCategories = async () => {
-    try {
-      const res = await axios.get(`${API}/categories`);
-      setCategories(res.data || {});
-    } catch (err) {
-      console.error('Failed to load categories', err);
-    }
+    const res = await axios.get(`${API}/categories`);
+    setCategories(res.data || {});
   };
 
   const loadExpenses = async () => {
     setLoading(true);
-    try {
-      const res = await axios.get(`${API}/expenses`);
-      setExpenses(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    const res = await axios.get(`${API}/expenses`);
+    setExpenses(res.data);
+    setLoading(false);
   };
 
   const add = async () => {
@@ -51,43 +41,31 @@ function App() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('quantity', form.quantity);
-    formData.append('category', form.category);
-    formData.append('group', form.group);
-    formData.append('amount', form.amount);
-    formData.append('notes', form.notes || '');
-    if (form.Image) formData.append('Image', form.Image);
+    const fd = new FormData();
+    Object.keys(form).forEach((k) => {
+      if (form[k]) fd.append(k, form[k]);
+    });
 
-    try {
-      const res = await axios.post(`${API}/expenses`, formData);
-      setExpenses((prev) => [res.data, ...prev]);
+    const res = await axios.post(`${API}/expenses`, fd);
+    setExpenses((prev) => [res.data, ...prev]);
 
-      setForm({
-        quantity: '',
-        category: '',
-        group: '',
-        amount: '',
-        notes: '',
-        Image: null,
-      });
+    setForm({
+      quantity: '',
+      category: '',
+      group: '',
+      amount: '',
+      notes: '',
+      Image: null,
+    });
 
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-    } catch (err) {
-      console.error(err);
-      alert('Failed to add expense');
-    }
+    const f = document.querySelector('input[type="file"]');
+    if (f) f.value = '';
   };
 
   const remove = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
-    try {
-      await axios.delete(`${API}/expenses/${id}`);
-      setExpenses((prev) => prev.filter((e) => e._id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    await axios.delete(`${API}/expenses/${id}`);
+    setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
   const total = expenses.reduce(
@@ -96,147 +74,145 @@ function App() {
   );
 
   return (
-    <div className="container">
-      <h1>Expense Dashboard</h1>
+    <div style={page}>
+      <h1 style={{ marginBottom: 20 }}>Expense Dashboard</h1>
 
-      {/* FORM */}
-      <div className="expense-form">
-        <input
-          type="number"
-          placeholder="Quantity"
-          value={form.quantity}
-          onChange={(e) =>
-            setForm({ ...form, quantity: e.target.value })
-          }
-        />
+      {/* FORM CARD */}
+      <div style={card}>
+        <div style={formGrid}>
+          <input
+            type="number"
+            placeholder="Quantity"
+            value={form.quantity}
+            onChange={(e) =>
+              setForm({ ...form, quantity: e.target.value })
+            }
+            style={input}
+          />
 
-        <select
-          value={form.category}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              category: e.target.value,
-              group: e.target.selectedOptions[0].dataset.group,
-            })
-          }
-        >
-          <option value="">Select Category</option>
-          {Object.entries(categories).map(([group, items]) => (
-            <optgroup key={group} label={group}>
-              {items.map((cat) => (
-                <option
-                  key={cat._id}
-                  value={cat.name}
-                  data-group={group}
-                >
-                  {cat.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          <select
+            value={form.category}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                category: e.target.value,
+                group: e.target.selectedOptions[0].dataset.group,
+              })
+            }
+            style={input}
+          >
+            <option value="">Select Category</option>
+            {Object.entries(categories).map(([group, items]) => (
+              <optgroup key={group} label={group}>
+                {items.map((c) => (
+                  <option
+                    key={c._id}
+                    value={c.name}
+                    data-group={group}
+                  >
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
 
-        <input
-          type="number"
-          placeholder="Amount"
-          value={form.amount}
-          onChange={(e) =>
-            setForm({ ...form, amount: e.target.value })
-          }
-        />
+          <input
+            type="number"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+            style={input}
+          />
 
-        <input
-          placeholder="Notes"
-          value={form.notes}
-          onChange={(e) =>
-            setForm({ ...form, notes: e.target.value })
-          }
-        />
+          <input
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) =>
+              setForm({ ...form, notes: e.target.value })
+            }
+            style={input}
+          />
+        </div>
 
-        <input
-          type="file"
-          onChange={(e) =>
-            setForm({ ...form, Image: e.target.files[0] })
-          }
-        />
+        <div style={formBottom}>
+          <input
+            type="file"
+            onChange={(e) =>
+              setForm({ ...form, Image: e.target.files[0] })
+            }
+          />
 
-        <button className="btn-add" onClick={add}>
-          Add
-        </button>
+          <button onClick={add} style={addBtn}>
+            Add
+          </button>
+
+          <div style={totalBox}>Total: ₹{total}</div>
+        </div>
       </div>
 
-      {/* TOTAL */}
-      <div className="total">Total: ₹{total}</div>
-
-      {/* TABLE */}
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <table className="expense-table">
+      {/* TABLE CARD */}
+      <div style={card}>
+        <table style={table}>
           <thead>
-            <tr>
-              <th>Qty</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Notes</th>
-              <th>Bill</th>
-              <th>Action</th>
+            <tr style={thead}>
+              <th style={th}>Qty</th>
+              <th style={th}>Category</th>
+              <th style={th}>Amount</th>
+              <th style={th}>Date</th>
+              <th style={th}>Notes</th>
+              <th style={th}>Bill</th>
+              <th style={th}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {expenses.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center' }}>
+                <td colSpan="7" style={center}>
+                  Loading...
+                </td>
+              </tr>
+            ) : expenses.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={center}>
                   No expenses yet
                 </td>
               </tr>
             ) : (
               expenses.map((e) => (
-                <tr key={e._id}>
-                  <td>{e.quantity}</td>
+                <tr key={e._id} style={row}>
+                  <td style={td}>{e.quantity}</td>
 
-                  {/* ✅ CATEGORY GROUP + CATEGORY */}
-                  <td>
-                    <div
-                      style={{
-                        fontSize: '12px',
-                        color: '#777',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      {e.group}
-                    </div>
-                    <div style={{ fontWeight: 600 }}>
-                      {e.category}
-                    </div>
+                  <td style={td}>
+                    <div style={groupText}>{e.group}</div>
+                    <div style={categoryText}>{e.category}</div>
                   </td>
 
-                  <td>₹{e.amount}</td>
-                  <td>{new Date(e.date).toLocaleDateString()}</td>
-                  <td>{e.notes}</td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ ...td, fontWeight: 'bold' }}>
+                    ₹{e.amount}
+                  </td>
+                  <td style={td}>
+                    {new Date(e.date).toLocaleDateString()}
+                  </td>
+                  <td style={td}>{e.notes}</td>
+                  <td style={td}>
                     {e.Image ? (
                       <img
                         src={e.Image}
                         alt="Bill"
-                        style={{
-                          width: '50px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                        }}
-                        onClick={() =>
-                          setPreviewImage(e.Image)
-                        }
+                        style={bill}
+                        onClick={() => setPreviewImage(e.Image)}
                       />
                     ) : (
                       '—'
                     )}
                   </td>
-                  <td>
+                  <td style={td}>
                     <button
-                      className="btn-delete"
                       onClick={() => remove(e._id)}
+                      style={deleteBtn}
                     >
                       Delete
                     </button>
@@ -246,35 +222,136 @@ function App() {
             )}
           </tbody>
         </table>
-      )}
+      </div>
 
       {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div
-          onClick={() => setPreviewImage(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-        >
-          <img
-            src={previewImage}
-            alt="Preview"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: '8px',
-            }}
-          />
+        <div style={overlay} onClick={() => setPreviewImage(null)}>
+          <img src={previewImage} alt="Preview" style={preview} />
         </div>
       )}
     </div>
   );
 }
+
+/* ---------- STYLES (INLINE, SAFE) ---------- */
+
+const page = {
+  maxWidth: 1200,
+  margin: '30px auto',
+  fontFamily: 'Arial, sans-serif',
+};
+
+const card = {
+  background: '#fff',
+  padding: 16,
+  borderRadius: 10,
+  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+  marginBottom: 20,
+};
+
+const formGrid = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 2fr 1fr 2fr',
+  gap: 12,
+};
+
+const formBottom = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  marginTop: 12,
+};
+
+const input = {
+  padding: 8,
+  borderRadius: 6,
+  border: '1px solid #ccc',
+};
+
+const addBtn = {
+  background: '#28a745',
+  color: '#fff',
+  border: 'none',
+  padding: '8px 18px',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontWeight: 'bold',
+};
+
+const totalBox = {
+  marginLeft: 'auto',
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#28a745',
+};
+
+const table = {
+  width: '100%',
+  borderCollapse: 'collapse',
+};
+
+const thead = {
+  background: '#f4f6f8',
+};
+
+const th = {
+  padding: 12,
+  textAlign: 'left',
+};
+
+const td = {
+  padding: 12,
+  fontSize: 14,
+};
+
+const row = {
+  borderTop: '1px solid #eee',
+};
+
+const center = {
+  textAlign: 'center',
+  padding: 20,
+};
+
+const groupText = {
+  fontSize: 12,
+  color: '#777',
+};
+
+const categoryText = {
+  fontWeight: 600,
+};
+
+const bill = {
+  width: 40,
+  borderRadius: 4,
+  cursor: 'pointer',
+};
+
+const deleteBtn = {
+  background: '#dc3545',
+  color: '#fff',
+  border: 'none',
+  padding: '6px 12px',
+  borderRadius: 6,
+  cursor: 'pointer',
+};
+
+const overlay = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.8)',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 9999,
+};
+
+const preview = {
+  maxWidth: '90%',
+  maxHeight: '90%',
+  borderRadius: 8,
+};
 
 export default App;
