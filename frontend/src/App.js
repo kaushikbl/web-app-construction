@@ -4,7 +4,9 @@ import './App.css';
 
 const API = '/api';
 
-/* CATEGORY ICONS */
+/* 🔧 SET YOUR TOTAL PROJECT BUDGET HERE */
+const PROJECT_BUDGET = 1650000; // 1.65 crores
+
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -20,15 +22,13 @@ const CATEGORY_ICONS = {
   'Exterior Works': '🌳',
 };
 
-const MONTH_BUDGET = 3500000;
-
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
-  const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [noteSearch, setNoteSearch] = useState('');
   const [editing, setEditing] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const [form, setForm] = useState({
     quantity: '',
@@ -40,24 +40,24 @@ function App() {
   });
 
   useEffect(() => {
-    loadCategories();
     loadExpenses();
+    loadCategories();
   }, []);
-
-  const loadCategories = async () => {
-    const res = await axios.get(`${API}/categories`);
-    setCategories(res.data || {});
-  };
 
   const loadExpenses = async () => {
     const res = await axios.get(`${API}/expenses`);
     setExpenses(res.data);
   };
 
+  const loadCategories = async () => {
+    const res = await axios.get(`${API}/categories`);
+    setCategories(res.data || {});
+  };
+
   /* ADD / UPDATE */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Please fill required fields');
+      alert('Fill required fields');
       return;
     }
 
@@ -65,17 +65,14 @@ function App() {
     Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
     if (editing) {
-      const res = await axios.put(
-        `${API}/expenses/${editing._id}`,
-        fd
-      );
-      setExpenses((prev) =>
-        prev.map((e) => (e._id === editing._id ? res.data : e))
+      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
+      setExpenses((p) =>
+        p.map((e) => (e._id === editing._id ? res.data : e))
       );
       setEditing(null);
     } else {
       const res = await axios.post(`${API}/expenses`, fd);
-      setExpenses((prev) => [res.data, ...prev]);
+      setExpenses((p) => [res.data, ...p]);
     }
 
     resetForm();
@@ -107,102 +104,92 @@ function App() {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
+    if (!window.confirm('Delete expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
-    setExpenses((prev) => prev.filter((e) => e._id !== id));
+    setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* 🔍 FILTERING: MONTH + NOTES */
+  /* 🔍 FILTER (Month + Notes) */
   const filteredExpenses = expenses.filter((e) => {
     const d = new Date(e.date);
-    const monthMatch = selectedMonth
-      ? d.getFullYear() +
-          '-' +
-          String(d.getMonth() + 1).padStart(2, '0') ===
+    const monthOK = selectedMonth
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` ===
         selectedMonth
       : true;
 
-    const noteMatch = noteSearch
-      ? (e.notes || '')
-          .toLowerCase()
-          .includes(noteSearch.toLowerCase())
+    const noteOK = noteSearch
+      ? (e.notes || '').toLowerCase().includes(noteSearch.toLowerCase())
       : true;
 
-    return monthMatch && noteMatch;
+    return monthOK && noteOK;
   });
 
-  /* METRICS */
-  const totalSpent = filteredExpenses.reduce(
+  /* 💰 TOTAL PROJECT SPENT (NOT MONTHLY) */
+  const totalProjectSpent = expenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
   );
 
-  const budgetPercent = Math.min(
-    Math.round((totalSpent / MONTH_BUDGET) * 100),
+  const projectPercent = Math.min(
+    Math.round((totalProjectSpent / PROJECT_BUDGET) * 100),
     100
   );
 
-  const categoryTotals = filteredExpenses.reduce((acc, e) => {
-    acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
-    return acc;
+  /* CATEGORY TOTALS (filtered view) */
+  const categoryTotals = filteredExpenses.reduce((a, e) => {
+    a[e.group] = (a[e.group] || 0) + Number(e.amount || 0);
+    return a;
   }, {});
 
-  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
+  const maxCat = Math.max(...Object.values(categoryTotals), 1);
 
   const months = [
     ...new Set(
       expenses.map((e) => {
         const d = new Date(e.date);
-        return (
-          d.getFullYear() +
-          '-' +
-          String(d.getMonth() + 1).padStart(2, '0')
-        );
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       })
     ),
   ];
 
   return (
-    <div className="container">
-      <h1>Expense Dashboard</h1>
+    <div
+      className="container"
+      style={{
+        maxWidth: '1200px',
+        width: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+      }}
+    >
+      <h1>Construction Expense Dashboard</h1>
 
       {/* TOP ROW */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      <div style={row}>
         <div style={card}>
-          <h3>Good Morning 👋</h3>
-          <strong>Kaushik</strong>
-          <div style={{ fontSize: 12, color: '#777' }}>
-            Track your construction expenses
-          </div>
+          <h3>Project Overview</h3>
+          <strong>Total Budget</strong>
+          <div>₹{PROJECT_BUDGET.toLocaleString()}</div>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: '#777' }}>
-            Budget vs Expense
+            Project Budget Utilization
           </div>
-          <CircularGauge percent={budgetPercent} />
+          <CircularGauge percent={projectPercent} />
           <div style={{ fontSize: 12 }}>
-            ₹{totalSpent} / ₹{MONTH_BUDGET}
+            ₹{totalProjectSpent.toLocaleString()} spent
           </div>
         </div>
       </div>
 
       {/* FILTER BAR */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          alignItems: 'flex-end',
-          marginBottom: 20,
-        }}
-      >
-        {/* MONTH */}
-        <div style={{ minWidth: 160 }}>
-          <label style={label}>Month</label>
+      <div style={row}>
+        <div style={{ width: 180 }}>
+          <label style={label}>Filter by Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            style={selectStyle}
           >
             <option value="">All Months</option>
             {months.map((m) => (
@@ -216,40 +203,115 @@ function App() {
           </select>
         </div>
 
-        {/* 🔍 NOTES SEARCH */}
         <div style={{ flex: 1 }}>
           <label style={label}>Search Notes</label>
           <input
-            placeholder="e.g. cement, advance, labour payment..."
+            placeholder="cement, advance, labour..."
             value={noteSearch}
             onChange={(e) => setNoteSearch(e.target.value)}
           />
         </div>
       </div>
 
-      {/* CATEGORY WISE */}
-      <h3>Category Wise Expenses</h3>
+      {/* ADD / EDIT */}
+      <div style={{ ...card, marginBottom: 25 }}>
+        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+
+        <div className="form-row">
+          <input
+            placeholder="Quantity"
+            value={form.quantity}
+            onChange={(e) =>
+              setForm({ ...form, quantity: e.target.value })
+            }
+          />
+
+          <select
+            value={form.category}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                category: e.target.value,
+                group: e.target.selectedOptions[0].dataset.group,
+              })
+            }
+          >
+            <option value="">Select Category</option>
+            {Object.entries(categories).map(([g, items]) => (
+              <optgroup key={g} label={g}>
+                {items.map((c) => (
+                  <option key={c._id} value={c.name} data-group={g}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+          />
+
+          <input
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) =>
+              setForm({ ...form, notes: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="form-row">
+          <input
+            type="file"
+            onChange={(e) =>
+              setForm({ ...form, Image: e.target.files[0] })
+            }
+          />
+
+          <button className="btn-add" onClick={submit}>
+            {editing ? 'Update' : 'Add'}
+          </button>
+
+          {editing && (
+            <button
+              className="btn-delete"
+              onClick={() => {
+                setEditing(null);
+                resetForm();
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* CATEGORY GRID */}
+      <h3>Category Wise (Filtered View)</h3>
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: 16,
-          marginBottom: 25,
         }}
       >
         {Object.entries(categoryTotals).map(([g, amt]) => (
           <div key={g} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>
-                {CATEGORY_ICONS[g] || '📦'} {g}
-              </span>
-              <strong>₹{amt}</strong>
+              <span>{CATEGORY_ICONS[g] || '📦'} {g}</span>
+              <strong>₹{amt.toLocaleString()}</strong>
             </div>
             <div style={progressBg}>
               <div
                 style={{
                   ...progressBar,
-                  width: `${(amt / maxCategory) * 100}%`,
+                  width: `${(amt / maxCat) * 100}%`,
                 }}
               />
             </div>
@@ -257,83 +319,64 @@ function App() {
         ))}
       </div>
 
-      {/* TRANSACTIONS */}
-      <h3>Recent Transactions</h3>
-      <table className="expense-table">
-        <thead>
-          <tr>
-            <th>Qty</th>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Date</th>
-            <th>Notes</th>
-            <th>Bill</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredExpenses.slice(0, 10).map((e) => (
-            <tr key={e._id}>
-              <td>{e.quantity}</td>
-              <td>
-                <div style={{ fontSize: 12, color: '#777' }}>
-                  {CATEGORY_ICONS[e.group] || '📦'} {e.group}
-                </div>
-                <strong>{e.category}</strong>
-              </td>
-              <td>₹{e.amount}</td>
-              <td>{new Date(e.date).toLocaleDateString()}</td>
-              <td>{e.notes || '—'}</td>
-              <td>
-                {e.Image ? (
-                  <img
-                    src={e.Image}
-                    alt="Bill"
-                    className="bill-thumb"
-                    onClick={() => setPreviewImage(e.Image)}
-                  />
-                ) : (
-                  '—'
-                )}
-              </td>
-              <td>
-                <button className="btn-add" onClick={() => editExpense(e)}>
-                  Edit
-                </button>{' '}
-                <button
-                  className="btn-delete"
-                  onClick={() => remove(e._id)}
-                >
-                  Delete
-                </button>
-              </td>
+      {/* TABLE */}
+      <h3>Transactions</h3>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="expense-table">
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Notes</th>
+              <th>Bill</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredExpenses.map((e) => (
+              <tr key={e._id}>
+                <td>{e.quantity}</td>
+                <td>
+                  <div style={{ fontSize: 12, color: '#777' }}>
+                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                  </div>
+                  <strong>{e.category}</strong>
+                </td>
+                <td>₹{e.amount}</td>
+                <td>{new Date(e.date).toLocaleDateString()}</td>
+                <td>{e.notes || '—'}</td>
+                <td>
+                  {e.Image ? (
+                    <img
+                      src={e.Image}
+                      alt="Bill"
+                      className="bill-thumb"
+                      onClick={() => setPreviewImage(e.Image)}
+                    />
+                  ) : '—'}
+                </td>
+                <td>
+                  <button className="btn-add" onClick={() => editExpense(e)}>
+                    Edit
+                  </button>{' '}
+                  <button
+                    className="btn-delete"
+                    onClick={() => remove(e._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div
-          onClick={() => setPreviewImage(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <img
-            src={previewImage}
-            alt="Preview"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: 8,
-            }}
-          />
+        <div style={overlay} onClick={() => setPreviewImage(null)}>
+          <img src={previewImage} alt="Preview" style={previewImg} />
         </div>
       )}
     </div>
@@ -372,10 +415,18 @@ const CircularGauge = ({ percent }) => (
   </div>
 );
 
+const row = {
+  display: 'flex',
+  gap: 16,
+  marginBottom: 20,
+  flexWrap: 'wrap',
+};
+
 const card = {
   background: 'white',
   padding: 15,
   borderRadius: 10,
+  flex: 1,
 };
 
 const label = {
@@ -383,13 +434,6 @@ const label = {
   color: '#777',
   marginBottom: 4,
   display: 'block',
-};
-
-const selectStyle = {
-  width: '100%',
-  padding: 8,
-  borderRadius: 6,
-  border: '1px solid #ccc',
 };
 
 const progressBg = {
@@ -403,6 +447,21 @@ const progressBar = {
   height: '100%',
   background: '#28a745',
   borderRadius: 4,
+};
+
+const overlay = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.8)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const previewImg = {
+  maxWidth: '90%',
+  maxHeight: '90%',
+  borderRadius: 8,
 };
 
 export default App;
