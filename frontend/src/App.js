@@ -142,7 +142,7 @@ function App() {
       </optgroup>
     ) : null
   )}
-
+</select>
         <input
           type="number"
           placeholder="Amount"
