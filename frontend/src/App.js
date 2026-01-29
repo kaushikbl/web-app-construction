@@ -5,20 +5,19 @@ import './App.css';
 const API = '/api';
 
 /* ===== PROJECT INFO ===== */
-const PROJECT_BUDGET = 11200000; // Approved working budget
+const PROJECT_BUDGET = 11200000;
 const PROJECT_INFO = {
   name: 'Residential House Construction',
   location: 'Bengaluru',
   type: 'Independent House (Slit / G+1 / G+2 / G+3)',
-  estimatedCost: 11200000,
 };
 
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
-  'Masonry': '🧱',
-  'Roofing': '🏠',
-  'Plumbing': '🚰',
-  'Electrical': '💡',
+  Masonry: '🧱',
+  Roofing: '🏠',
+  Plumbing: '🚰',
+  Electrical: '💡',
   'Labor & Services': '👷',
   'Transport & Miscellaneous': '🚚',
   'Professional & Government': '📄',
@@ -127,23 +126,19 @@ function App() {
     return monthOK && noteOK;
   });
 
-  /* ===== PROJECT METRICS ===== */
-  const totalProjectSpent = expenses.reduce(
+  /* ===== METRICS ===== */
+  const totalSpent = expenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
   );
 
-  const remainingBudget = PROJECT_BUDGET - totalProjectSpent;
+  const remaining = PROJECT_BUDGET - totalSpent;
+  const percentUsed = Math.round((totalSpent / PROJECT_BUDGET) * 100);
 
-  const projectPercent = Math.min(
-    Math.round((totalProjectSpent / PROJECT_BUDGET) * 100),
-    100
-  );
-
-  const projectStatus =
-    projectPercent >= 100
+  const status =
+    percentUsed >= 100
       ? 'Over Budget'
-      : projectPercent >= 85
+      : percentUsed >= 85
       ? 'At Risk'
       : 'On Track';
 
@@ -152,7 +147,9 @@ function App() {
     return a;
   }, {});
 
-  const maxCat = Math.max(...Object.values(categoryTotals), 1);
+  const sortedCategories = Object.entries(categoryTotals).sort(
+    (a, b) => b[1] - a[1]
+  );
 
   const months = [
     ...new Set(
@@ -164,79 +161,58 @@ function App() {
   ];
 
   return (
-    <div
-      className="container"
-      style={{ maxWidth: 1200, width: '100%', margin: '0 auto' }}
-    >
+    <div className="container" style={{ maxWidth: 1200 }}>
       <h1>Construction Expense Dashboard</h1>
 
-      {/* ===== PROJECT OVERVIEW ===== */}
+      {/* ===== PROJECT OVERVIEW + GAUGE ===== */}
       <div style={row}>
         <div style={card}>
           <h3>🏗️ Project Overview</h3>
-
-          <OverviewRow label="Project Name" value={PROJECT_INFO.name} />
-          <OverviewRow label="Location" value={PROJECT_INFO.location} />
-          <OverviewRow label="Project Type" value={PROJECT_INFO.type} />
-
-          <hr />
-
-          <OverviewRow
-            label="Estimated Cost"
-            value={`₹${PROJECT_INFO.estimatedCost.toLocaleString()}`}
-          />
-          <OverviewRow
-            label="Approved Budget"
-            value={`₹${PROJECT_BUDGET.toLocaleString()}`}
-          />
-          <OverviewRow
-            label="Total Spent"
-            value={`₹${totalProjectSpent.toLocaleString()}`}
-          />
-          <OverviewRow
-            label="Remaining"
-            value={`₹${remainingBudget.toLocaleString()}`}
-            color={remainingBudget < 0 ? '#dc3545' : '#28a745'}
-          />
-          <OverviewRow
-            label="Budget Used"
-            value={`${projectPercent}%`}
-          />
-
-          <div style={{ marginTop: 8, fontWeight: 600 }}>
-            Status:{' '}
-            <span
-              style={{
-                color:
-                  projectStatus === 'Over Budget'
-                    ? '#dc3545'
-                    : projectStatus === 'At Risk'
-                    ? '#ffc107'
-                    : '#28a745',
-              }}
-            >
-              {projectStatus}
-            </span>
+          <strong>{PROJECT_INFO.name}</strong>
+          <div style={muted}>
+            {PROJECT_INFO.location} · {PROJECT_INFO.type}
           </div>
+
+          <div style={overviewRow}>
+            <span>Budget</span>
+            <strong>₹{PROJECT_BUDGET.toLocaleString()}</strong>
+          </div>
+          <div style={overviewRow}>
+            <span>Spent</span>
+            <strong>₹{totalSpent.toLocaleString()}</strong>
+          </div>
+          <div style={overviewRow}>
+            <span>Remaining</span>
+            <strong style={{ color: remaining < 0 ? '#dc3545' : '#28a745' }}>
+              ₹{remaining.toLocaleString()}
+            </strong>
+          </div>
+          <div style={overviewRow}>
+            <span>Used</span>
+            <strong>{percentUsed}%</strong>
+          </div>
+
+          <span className={`status ${status.replace(' ', '').toLowerCase()}`}>
+            {status}
+          </span>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
-          <CircularGauge percent={projectPercent} />
-          <div style={{ fontSize: 12 }}>
-            ₹{totalProjectSpent.toLocaleString()} spent
-          </div>
+          <CircularGauge percent={percentUsed} />
+          <div style={muted}>Project Budget Utilization</div>
+          <strong>₹{totalSpent.toLocaleString()} spent</strong>
         </div>
       </div>
 
-      {/* ===== FILTER BAR ===== */}
+      {/* ===== FILTERS ===== */}
       <div style={row}>
-        <div style={{ width: 180 }}>
-          <label style={label}>Month</label>
+        <div>
+          <label>Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
-            <option value="">All Months</option>
+            <option value="">All</option>
             {months.map((m) => (
               <option key={m} value={m}>
                 {new Date(m + '-01').toLocaleString('default', {
@@ -249,7 +225,7 @@ function App() {
         </div>
 
         <div style={{ flex: 1 }}>
-          <label style={label}>Search Notes</label>
+          <label>Search Notes</label>
           <input
             placeholder="cement, advance, labour..."
             value={noteSearch}
@@ -258,9 +234,9 @@ function App() {
         </div>
       </div>
 
-      {/* ===== ADD / EDIT ===== */}
-      <div style={{ ...card, marginBottom: 25 }}>
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+      {/* ===== ADD EXPENSE ===== */}
+      <div style={{ ...card, marginBottom: 20 }}>
+        <h3>Add Expense</h3>
 
         <div className="form-row">
           <input
@@ -270,7 +246,6 @@ function App() {
               setForm({ ...form, quantity: e.target.value })
             }
           />
-
           <select
             value={form.category}
             onChange={(e) =>
@@ -292,7 +267,6 @@ function App() {
               </optgroup>
             ))}
           </select>
-
           <input
             type="number"
             placeholder="Amount"
@@ -301,7 +275,6 @@ function App() {
               setForm({ ...form, amount: e.target.value })
             }
           />
-
           <input
             placeholder="Notes"
             value={form.notes}
@@ -318,40 +291,26 @@ function App() {
               setForm({ ...form, Image: e.target.files[0] })
             }
           />
-
           <button className="btn-add" onClick={submit}>
             {editing ? 'Update' : 'Add'}
           </button>
-
-          {editing && (
-            <button className="btn-delete" onClick={() => setEditing(null)}>
-              Cancel
-            </button>
-          )}
         </div>
       </div>
 
       {/* ===== CATEGORY SUMMARY ===== */}
       <h3>Category Wise Expenses</h3>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 16,
-          marginBottom: 30,
-        }}
-      >
-        {Object.entries(categoryTotals).map(([g, amt]) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+        {sortedCategories.map(([g, amt]) => (
           <div key={g} style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{CATEGORY_ICONS[g] || '📦'} {g}</span>
+            <div style={between}>
+              <span>{CATEGORY_ICONS[g]} {g}</span>
               <strong>₹{amt.toLocaleString()}</strong>
             </div>
             <div style={progressBg}>
               <div
                 style={{
                   ...progressBar,
-                  width: `${(amt / maxCat) * 100}%`,
+                  width: `${(amt / totalSpent) * 100}%`,
                 }}
               />
             </div>
@@ -360,14 +319,14 @@ function App() {
       </div>
 
       {/* ===== EXPENSE TABLE ===== */}
-      <h3>Expense Details</h3>
-      <div style={{ overflowX: 'auto', marginBottom: 30 }}>
+      <h3 style={{ marginTop: 30 }}>Expense Details</h3>
+      <div style={{ overflowX: 'auto' }}>
         <table className="expense-table">
           <thead>
             <tr>
               <th>Qty</th>
               <th>Category</th>
-              <th>Amount</th>
+              <th style={{ textAlign: 'right' }}>Amount</th>
               <th>Date</th>
               <th>Notes</th>
               <th>Bill</th>
@@ -379,20 +338,21 @@ function App() {
               <tr key={e._id}>
                 <td>{e.quantity}</td>
                 <td>
-                  <div style={{ fontSize: 12, color: '#777' }}>
-                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
-                  </div>
+                  <div style={muted}>{e.group}</div>
                   <strong>{e.category}</strong>
                 </td>
-                <td>₹{Number(e.amount).toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>
+                  ₹{Number(e.amount).toLocaleString()}
+                </td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes || '—'}</td>
+                <td style={muted}>{e.notes || '—'}</td>
                 <td>
                   {e.Image ? (
                     <img
                       src={e.Image}
                       alt="Bill"
                       className="bill-thumb"
+                      title="Click to view bill"
                       onClick={() => setPreviewImage(e.Image)}
                     />
                   ) : (
@@ -403,10 +363,7 @@ function App() {
                   <button className="btn-add" onClick={() => editExpense(e)}>
                     Edit
                   </button>{' '}
-                  <button
-                    className="btn-delete"
-                    onClick={() => remove(e._id)}
-                  >
+                  <button className="btn-delete" onClick={() => remove(e._id)}>
                     Delete
                   </button>
                 </td>
@@ -418,10 +375,7 @@ function App() {
 
       {/* ===== IMAGE PREVIEW ===== */}
       {previewImage && (
-        <div
-          onClick={() => setPreviewImage(null)}
-          style={overlay}
-        >
+        <div style={overlay} onClick={() => setPreviewImage(null)}>
           <img src={previewImage} alt="Preview" style={previewImg} />
         </div>
       )}
@@ -429,14 +383,7 @@ function App() {
   );
 }
 
-/* ===== SMALL COMPONENTS ===== */
-
-const OverviewRow = ({ label, value, color }) => (
-  <div style={overviewRow}>
-    <span>{label}</span>
-    <strong style={{ color }}>{value}</strong>
-  </div>
-);
+/* ===== SMALL COMPONENTS & STYLES ===== */
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -444,7 +391,7 @@ const CircularGauge = ({ percent }) => (
       width: 120,
       height: 120,
       borderRadius: '50%',
-      background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
+      background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -468,63 +415,14 @@ const CircularGauge = ({ percent }) => (
   </div>
 );
 
-/* ===== STYLES ===== */
-
-const row = {
-  display: 'flex',
-  gap: 16,
-  marginBottom: 20,
-  flexWrap: 'wrap',
-};
-
-const card = {
-  background: 'white',
-  padding: 15,
-  borderRadius: 10,
-  flex: 1,
-};
-
-const label = {
-  fontSize: 12,
-  color: '#777',
-  marginBottom: 4,
-  display: 'block',
-};
-
-const overviewRow = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  fontSize: 13,
-  marginBottom: 4,
-};
-
-const progressBg = {
-  height: 6,
-  background: '#e9ecef',
-  borderRadius: 4,
-  marginTop: 6,
-};
-
-const progressBar = {
-  height: '100%',
-  background: '#28a745',
-  borderRadius: 4,
-};
-
-const overlay = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 9999,
-};
-
-const previewImg = {
-  maxWidth: '90%',
-  maxHeight: '90%',
-  borderRadius: 8,
-};
+const row = { display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' };
+const card = { background: 'white', padding: 16, borderRadius: 10 };
+const muted = { fontSize: 12, color: '#777' };
+const overviewRow = { display: 'flex', justifyContent: 'space-between', marginTop: 4 };
+const between = { display: 'flex', justifyContent: 'space-between' };
+const progressBg = { height: 6, background: '#eee', borderRadius: 4, marginTop: 6 };
+const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
 
 export default App;
