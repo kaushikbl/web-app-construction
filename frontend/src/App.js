@@ -20,13 +20,14 @@ const CATEGORY_ICONS = {
   'Exterior Works': '🌳',
 };
 
-const MONTH_BUDGET = 100000;
+const MONTH_BUDGET = 3500000;
 
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [noteSearch, setNoteSearch] = useState('');
   const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
@@ -111,18 +112,24 @@ function App() {
     setExpenses((prev) => prev.filter((e) => e._id !== id));
   };
 
-  /* MONTH FILTER */
-  const filteredExpenses = selectedMonth
-    ? expenses.filter((e) => {
-        const d = new Date(e.date);
-        return (
-          d.getFullYear() +
-            '-' +
-            String(d.getMonth() + 1).padStart(2, '0') ===
-          selectedMonth
-        );
-      })
-    : expenses;
+  /* 🔍 FILTERING: MONTH + NOTES */
+  const filteredExpenses = expenses.filter((e) => {
+    const d = new Date(e.date);
+    const monthMatch = selectedMonth
+      ? d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0') ===
+        selectedMonth
+      : true;
+
+    const noteMatch = noteSearch
+      ? (e.notes || '')
+          .toLowerCase()
+          .includes(noteSearch.toLowerCase())
+      : true;
+
+    return monthMatch && noteMatch;
+  });
 
   /* METRICS */
   const totalSpent = filteredExpenses.reduce(
@@ -180,37 +187,22 @@ function App() {
         </div>
       </div>
 
-      {/* FILTER + ADD */}
+      {/* FILTER BAR */}
       <div
         style={{
           display: 'flex',
           gap: 16,
-          alignItems: 'flex-start',
+          alignItems: 'flex-end',
           marginBottom: 20,
         }}
       >
-        {/* COMPACT MONTH FILTER */}
-        <div style={{ minWidth: 180 }}>
-          <label
-            style={{
-              fontSize: 12,
-              color: '#777',
-              display: 'block',
-              marginBottom: 4,
-            }}
-          >
-            Month
-          </label>
+        {/* MONTH */}
+        <div style={{ minWidth: 160 }}>
+          <label style={label}>Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 8,
-              borderRadius: 6,
-              border: '1px solid #ccc',
-              background: 'white',
-            }}
+            style={selectStyle}
           >
             <option value="">All Months</option>
             {months.map((m) => (
@@ -224,88 +216,14 @@ function App() {
           </select>
         </div>
 
-        {/* ADD / EDIT FORM */}
-        <div style={{ ...card, flex: 3 }}>
-          <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-
-          <div className="form-row">
-            <input
-              type="number"
-              placeholder="Quantity"
-              value={form.quantity}
-              onChange={(e) =>
-                setForm({ ...form, quantity: e.target.value })
-              }
-            />
-
-            <select
-              value={form.category}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  category: e.target.value,
-                  group: e.target.selectedOptions[0].dataset.group,
-                })
-              }
-            >
-              <option value="">Select Category</option>
-              {Object.entries(categories).map(([g, items]) => (
-                <optgroup key={g} label={g}>
-                  {items.map((c) => (
-                    <option
-                      key={c._id}
-                      value={c.name}
-                      data-group={g}
-                    >
-                      {c.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              placeholder="Amount"
-              value={form.amount}
-              onChange={(e) =>
-                setForm({ ...form, amount: e.target.value })
-              }
-            />
-
-            <input
-              placeholder="Notes"
-              value={form.notes}
-              onChange={(e) =>
-                setForm({ ...form, notes: e.target.value })
-              }
-            />
-          </div>
-
-          <div className="form-row">
-            <input
-              type="file"
-              onChange={(e) =>
-                setForm({ ...form, Image: e.target.files[0] })
-              }
-            />
-
-            <button className="btn-add" onClick={submit}>
-              {editing ? 'Update' : 'Add'}
-            </button>
-
-            {editing && (
-              <button
-                className="btn-delete"
-                onClick={() => {
-                  setEditing(null);
-                  resetForm();
-                }}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
+        {/* 🔍 NOTES SEARCH */}
+        <div style={{ flex: 1 }}>
+          <label style={label}>Search Notes</label>
+          <input
+            placeholder="e.g. cement, advance, labour payment..."
+            value={noteSearch}
+            onChange={(e) => setNoteSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -327,21 +245,11 @@ function App() {
               </span>
               <strong>₹{amt}</strong>
             </div>
-
-            <div
-              style={{
-                height: 6,
-                background: '#e9ecef',
-                borderRadius: 4,
-                marginTop: 6,
-              }}
-            >
+            <div style={progressBg}>
               <div
                 style={{
+                  ...progressBar,
                   width: `${(amt / maxCategory) * 100}%`,
-                  height: '100%',
-                  background: '#28a745',
-                  borderRadius: 4,
                 }}
               />
             </div>
@@ -349,7 +257,7 @@ function App() {
         ))}
       </div>
 
-      {/* RECENT TRANSACTIONS */}
+      {/* TRANSACTIONS */}
       <h3>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
@@ -364,7 +272,7 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {filteredExpenses.slice(0, 5).map((e) => (
+          {filteredExpenses.slice(0, 10).map((e) => (
             <tr key={e._id}>
               <td>{e.quantity}</td>
               <td>
@@ -389,10 +297,7 @@ function App() {
                 )}
               </td>
               <td>
-                <button
-                  className="btn-add"
-                  onClick={() => editExpense(e)}
-                >
+                <button className="btn-add" onClick={() => editExpense(e)}>
                   Edit
                 </button>{' '}
                 <button
@@ -435,7 +340,7 @@ function App() {
   );
 }
 
-/* COMPONENTS */
+/* UI HELPERS */
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -471,7 +376,33 @@ const card = {
   background: 'white',
   padding: 15,
   borderRadius: 10,
-  flex: 1,
+};
+
+const label = {
+  fontSize: 12,
+  color: '#777',
+  marginBottom: 4,
+  display: 'block',
+};
+
+const selectStyle = {
+  width: '100%',
+  padding: 8,
+  borderRadius: 6,
+  border: '1px solid #ccc',
+};
+
+const progressBg = {
+  height: 6,
+  background: '#e9ecef',
+  borderRadius: 4,
+  marginTop: 6,
+};
+
+const progressBar = {
+  height: '100%',
+  background: '#28a745',
+  borderRadius: 4,
 };
 
 export default App;
