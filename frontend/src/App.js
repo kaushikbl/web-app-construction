@@ -12,23 +12,9 @@ const PROJECT_INFO = {
   type: 'Independent House (Split / G+1 / G+2 / G+3)',
 };
 
-const CATEGORY_ICONS = {
-  'Foundation & Structure': '🏗️',
-  Masonry: '🧱',
-  Roofing: '🏠',
-  Plumbing: '🚰',
-  Electrical: '💡',
-  'Labor & Services': '👷',
-  'Transport & Miscellaneous': '🚚',
-  'Professional & Government': '📄',
-  'Site Preparation': '🚜',
-};
-
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [noteSearch, setNoteSearch] = useState('');
   const [editing, setEditing] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -56,7 +42,7 @@ function App() {
     setCategories(res.data || {});
   };
 
-  /* ===== ADD / UPDATE (FIXED) ===== */
+  /* ===== ADD / UPDATE ===== */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Fill required fields');
@@ -69,33 +55,20 @@ function App() {
     fd.append('group', form.group);
     fd.append('amount', form.amount);
     fd.append('notes', form.notes || '');
+    if (form.Image) fd.append('Image', form.Image);
 
-    // Only append image if re-selected
-    if (form.Image) {
-      fd.append('Image', form.Image);
+    if (editing) {
+      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
+      setExpenses((p) =>
+        p.map((e) => (e._id === editing._id ? res.data : e))
+      );
+      setEditing(null);
+    } else {
+      const res = await axios.post(`${API}/expenses`, fd);
+      setExpenses((p) => [res.data, ...p]);
     }
 
-    try {
-      if (editing) {
-        const res = await axios.put(
-          `${API}/expenses/${editing._id}`,
-          fd
-        );
-        setExpenses((prev) =>
-          prev.map((e) =>
-            e._id === editing._id ? res.data : e
-          )
-        );
-        setEditing(null);
-      } else {
-        const res = await axios.post(`${API}/expenses`, fd);
-        setExpenses((prev) => [res.data, ...prev]);
-      }
-      resetForm();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to save expense');
-    }
+    resetForm();
   };
 
   const editExpense = (e) => {
@@ -108,7 +81,6 @@ function App() {
       notes: e.notes || '',
       Image: null,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
@@ -130,142 +102,19 @@ function App() {
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* ===== FILTERING ===== */
-  const filteredExpenses = expenses.filter((e) => {
-    const d = new Date(e.date);
-    const monthOK = selectedMonth
-      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` ===
-        selectedMonth
-      : true;
-
-    const noteOK = noteSearch
-      ? (e.notes || '').toLowerCase().includes(noteSearch.toLowerCase())
-      : true;
-
-    return monthOK && noteOK;
-  });
-
-  /* ===== METRICS ===== */
-  const totalSpent = expenses.reduce(
-    (s, e) => s + Number(e.amount || 0),
-    0
-  );
-
-  const remaining = PROJECT_BUDGET - totalSpent;
-  const percentUsed = Math.round((totalSpent / PROJECT_BUDGET) * 100);
-
-  const status =
-    percentUsed >= 100
-      ? 'Over Budget'
-      : percentUsed >= 85
-      ? 'At Risk'
-      : 'On Track';
-
-  const categoryTotals = filteredExpenses.reduce((a, e) => {
-    a[e.group] = (a[e.group] || 0) + Number(e.amount || 0);
-    return a;
-  }, {});
-
-  const sortedCategories = Object.entries(categoryTotals).sort(
-    (a, b) => b[1] - a[1]
-  );
-
-  const months = [
-    ...new Set(
-      expenses.map((e) => {
-        const d = new Date(e.date);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      })
-    ),
-  ];
-
   return (
     <div className="container" style={{ maxWidth: 1200 }}>
       <h1>Construction Expense Dashboard</h1>
 
-      {/* PROJECT OVERVIEW */}
-      <div style={row}>
-        <div style={card}>
-          <h3>🏗️ Project Overview</h3>
-          <strong>{PROJECT_INFO.name}</strong>
-          <div style={muted}>
-            {PROJECT_INFO.location} · {PROJECT_INFO.type}
-          </div>
-
-          <OverviewRow label="Budget" value={`₹${PROJECT_BUDGET.toLocaleString()}`} />
-          <OverviewRow label="Spent" value={`₹${totalSpent.toLocaleString()}`} />
-          <OverviewRow
-            label="Remaining"
-            value={`₹${remaining.toLocaleString()}`}
-            color={remaining < 0 ? '#dc3545' : '#28a745'}
-          />
-          <OverviewRow label="Used" value={`${percentUsed}%`} />
-
-          <div style={{ fontWeight: 600, marginTop: 6 }}>
-            Status:{' '}
-            <span
-              style={{
-                color:
-                  status === 'Over Budget'
-                    ? '#dc3545'
-                    : status === 'At Risk'
-                    ? '#ffc107'
-                    : '#28a745',
-              }}
-            >
-              {status}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ ...card, textAlign: 'center' }}>
-          <CircularGauge percent={percentUsed} />
-          <div style={muted}>Project Budget Utilization</div>
-          <strong>₹{totalSpent.toLocaleString()} spent</strong>
-        </div>
-      </div>
-
-      {/* FILTERS */}
-      <div style={row}>
-        <div>
-          <label>Month</label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          >
-            <option value="">All</option>
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {new Date(m + '-01').toLocaleString('default', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <label>Search Notes</label>
-          <input
-            placeholder="cement, advance, labour..."
-            value={noteSearch}
-            onChange={(e) => setNoteSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* ADD / EDIT */}
-      <div style={{ ...card, marginBottom: 20 }}>
+      {/* ===== ADD / EDIT ===== */}
+      <div className="card">
         <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
         <div className="form-row">
           <input
             placeholder="Quantity"
             value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
           />
 
           <select
@@ -294,26 +143,20 @@ function App() {
             type="number"
             placeholder="Amount"
             value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
           />
 
           <input
             placeholder="Notes"
             value={form.notes}
-            onChange={(e) =>
-              setForm({ ...form, notes: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </div>
 
         <div className="form-row">
           <input
             type="file"
-            onChange={(e) =>
-              setForm({ ...form, Image: e.target.files[0] })
-            }
+            onChange={(e) => setForm({ ...form, Image: e.target.files[0] })}
           />
 
           <button className="btn-add" onClick={submit}>
@@ -328,138 +171,105 @@ function App() {
         </div>
       </div>
 
-      {/* CATEGORY SUMMARY */}
-      <h3>Category Wise Expenses</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-        {sortedCategories.map(([g, amt]) => (
-          <div key={g} style={card}>
-            <div style={between}>
-              <span>{CATEGORY_ICONS[g]} {g}</span>
-              <strong>₹{amt.toLocaleString()}</strong>
-            </div>
-            <div style={progressBg}>
-              <div
-                style={{
-                  ...progressBar,
-                  width: `${(amt / totalSpent) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* EXPENSE TABLE */}
+      {/* ===== TABLE ===== */}
       <h3 style={{ marginTop: 30 }}>Expense Details</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="expense-table">
-          <thead>
-            <tr>
-              <th>Qty</th>
-              <th>Category</th>
-              <th style={{ textAlign: 'right' }}>Amount</th>
-              <th>Date</th>
-              <th>Notes</th>
-              <th>Bill</th>
-              <th>Action</th>
+      <table className="expense-table">
+        <thead>
+          <tr>
+            <th>Qty</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Bill</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {expenses.map((e) => (
+            <tr key={e._id}>
+              <td>{e.quantity}</td>
+              <td>{e.category}</td>
+              <td>₹{e.amount}</td>
+              <td>{new Date(e.date).toLocaleDateString()}</td>
+              <td>{e.notes || '—'}</td>
+              <td>
+                {e.Image ? (
+                  <img
+                    src={e.Image}
+                    alt="Bill"
+                    className="bill-thumb"
+                    onClick={() => setPreviewImage(e.Image)}
+                  />
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td>
+                <button className="btn-add" onClick={() => editExpense(e)}>
+                  Edit
+                </button>{' '}
+                <button className="btn-delete" onClick={() => remove(e._id)}>
+                  Delete
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {filteredExpenses.map((e) => (
-              <tr key={e._id}>
-                <td>{e.quantity}</td>
-                <td>
-                  <div style={muted}>{e.group}</div>
-                  <strong>{e.category}</strong>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  ₹{Number(e.amount).toLocaleString()}
-                </td>
-                <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td style={muted}>{e.notes || '—'}</td>
-                <td>
-                  {e.Image ? (
-                    <img
-                      src={e.Image}
-                      alt="Bill"
-                      className="bill-thumb"
-                      title="Click to view bill"
-                      onClick={() => setPreviewImage(e.Image)}
-                    />
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td>
-                  <button className="btn-add" onClick={() => editExpense(e)}>
-                    Edit
-                  </button>{' '}
-                  <button className="btn-delete" onClick={() => remove(e._id)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
 
-      {/* IMAGE PREVIEW */}
+      {/* ===== IMAGE PREVIEW MODAL ===== */}
       {previewImage && (
-        <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} alt="Preview" style={previewImg} />
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <button
+              style={closeBtn}
+              onClick={() => setPreviewImage(null)}
+            >
+              ✕
+            </button>
+            <img src={previewImage} alt="Preview" style={modalImg} />
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-/* ===== SMALL COMPONENTS & STYLES ===== */
+/* ===== MODAL STYLES ===== */
+const modalOverlay = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.85)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 99999,
+};
 
-const OverviewRow = ({ label, value, color }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-    <span>{label}</span>
-    <strong style={{ color }}>{value}</strong>
-  </div>
-);
+const modalBox = {
+  position: 'relative',
+  background: '#fff',
+  padding: 10,
+  borderRadius: 8,
+  maxWidth: '90%',
+  maxHeight: '90%',
+};
 
-const CircularGauge = ({ percent }) => (
-  <div
-    style={{
-      width: 120,
-      height: 120,
-      borderRadius: '50%',
-      background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '10px auto',
-    }}
-  >
-    <div
-      style={{
-        width: 90,
-        height: 90,
-        borderRadius: '50%',
-        background: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 'bold',
-      }}
-    >
-      {percent}%
-    </div>
-  </div>
-);
+const modalImg = {
+  maxWidth: '100%',
+  maxHeight: '80vh',
+  borderRadius: 6,
+};
 
-const row = { display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' };
-const card = { background: 'white', padding: 16, borderRadius: 10 };
-const muted = { fontSize: 12, color: '#777' };
-const between = { display: 'flex', justifyContent: 'space-between' };
-const progressBg = { height: 6, background: '#eee', borderRadius: 4, marginTop: 6 };
-const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
+const closeBtn = {
+  position: 'absolute',
+  top: 6,
+  right: 10,
+  border: 'none',
+  background: 'transparent',
+  fontSize: 22,
+  cursor: 'pointer',
+};
 
 export default App;
