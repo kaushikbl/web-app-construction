@@ -4,7 +4,7 @@ import './App.css';
 
 const API = '/api';
 
-/* ICONS */
+/* CATEGORY ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -20,7 +20,7 @@ const CATEGORY_ICONS = {
   'Exterior Works': '🌳',
 };
 
-const MONTH_BUDGET = 16000000; // change if needed
+const MONTH_BUDGET = 100000;
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -159,7 +159,7 @@ function App() {
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* ================= TOP ROW ================= */}
+      {/* TOP ROW */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
           <h3>Good Morning 👋</h3>
@@ -180,24 +180,51 @@ function App() {
         </div>
       </div>
 
-      {/* ================= FILTER + ADD ================= */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          style={{ flex: 1 }}
-        >
-          <option value="">All Months</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {new Date(m + '-01').toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </option>
-          ))}
-        </select>
+      {/* FILTER + ADD */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          alignItems: 'flex-start',
+          marginBottom: 20,
+        }}
+      >
+        {/* COMPACT MONTH FILTER */}
+        <div style={{ minWidth: 180 }}>
+          <label
+            style={{
+              fontSize: 12,
+              color: '#777',
+              display: 'block',
+              marginBottom: 4,
+            }}
+          >
+            Month
+          </label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 8,
+              borderRadius: 6,
+              border: '1px solid #ccc',
+              background: 'white',
+            }}
+          >
+            <option value="">All Months</option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {new Date(m + '-01').toLocaleString('default', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
 
+        {/* ADD / EDIT FORM */}
         <div style={{ ...card, flex: 3 }}>
           <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
@@ -282,7 +309,7 @@ function App() {
         </div>
       </div>
 
-      {/* ================= CATEGORY WISE ================= */}
+      {/* CATEGORY WISE */}
       <h3>Category Wise Expenses</h3>
       <div
         style={{
@@ -322,7 +349,7 @@ function App() {
         ))}
       </div>
 
-      {/* ================= RECENT TRANSACTIONS ================= */}
+      {/* RECENT TRANSACTIONS */}
       <h3>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
@@ -331,6 +358,7 @@ function App() {
             <th>Category</th>
             <th>Amount</th>
             <th>Date</th>
+            <th>Notes</th>
             <th>Bill</th>
             <th>Action</th>
           </tr>
@@ -346,9 +374,8 @@ function App() {
                 <strong>{e.category}</strong>
               </td>
               <td>₹{e.amount}</td>
-              <td>
-                {new Date(e.date).toLocaleDateString()}
-              </td>
+              <td>{new Date(e.date).toLocaleDateString()}</td>
+              <td>{e.notes || '—'}</td>
               <td>
                 {e.Image ? (
                   <img
@@ -408,7 +435,7 @@ function App() {
   );
 }
 
-/* ===== COMPONENTS ===== */
+/* COMPONENTS */
 
 const CircularGauge = ({ percent }) => (
   <div
