@@ -4,20 +4,16 @@ import './App.css';
 
 const API = '/api';
 
-/* CATEGORY ICONS */
+/* ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
   'Roofing': '🏠',
   'Plumbing': '🚰',
   'Electrical': '💡',
-  'Carpentry & Wood Work': '🪚',
-  'Flooring': '🪵',
-  'Metal & Fabrication': '🔩',
-  'Exterior Works': '🌳',
   'Labor & Services': '👷',
-  'Professional & Government': '📄',
   'Transport & Miscellaneous': '🚚',
+  'Professional & Government': '📄',
   'Site Preparation': '🚜',
 };
 
@@ -26,9 +22,6 @@ function App() {
   const [categories, setCategories] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
-
-  /* EDIT STATE */
-  const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
     quantity: '',
@@ -54,70 +47,6 @@ function App() {
     setExpenses(res.data);
   };
 
-  /* ADD */
-  const add = async () => {
-    if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Please fill required fields');
-      return;
-    }
-
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
-
-    const res = await axios.post(`${API}/expenses`, fd);
-    setExpenses((prev) => [res.data, ...prev]);
-    resetForm();
-  };
-
-  /* EDIT */
-  const openEdit = (exp) => {
-    setEditing(exp);
-    setForm({
-      quantity: exp.quantity,
-      category: exp.category,
-      group: exp.group,
-      amount: exp.amount,
-      notes: exp.notes || '',
-      Image: null,
-    });
-  };
-
-  const update = async () => {
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
-
-    const res = await axios.put(
-      `${API}/expenses/${editing._id}`,
-      fd
-    );
-
-    setExpenses((prev) =>
-      prev.map((e) => (e._id === editing._id ? res.data : e))
-    );
-
-    setEditing(null);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setForm({
-      quantity: '',
-      category: '',
-      group: '',
-      amount: '',
-      notes: '',
-      Image: null,
-    });
-    const f = document.querySelector('input[type="file"]');
-    if (f) f.value = '';
-  };
-
-  const remove = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
-    await axios.delete(`${API}/expenses/${id}`);
-    setExpenses((prev) => prev.filter((e) => e._id !== id));
-  };
-
   /* MONTH FILTER */
   const filteredExpenses = selectedMonth
     ? expenses.filter((e) => {
@@ -132,17 +61,17 @@ function App() {
     : expenses;
 
   /* METRICS */
-  const total = filteredExpenses.reduce(
+  const totalSpent = filteredExpenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
   );
 
-  const groupTotals = filteredExpenses.reduce((acc, e) => {
+  const categoryTotals = filteredExpenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
     return acc;
   }, {});
 
-  const maxGroup = Math.max(...Object.values(groupTotals), 1);
+  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
 
   const months = [
     ...new Set(
@@ -159,9 +88,32 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Expense Dashboard</h1>
+      {/* TOP DASHBOARD ROW */}
+      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+        {/* GREETING CARD */}
+        <div style={card}>
+          <h3 style={{ marginBottom: 5 }}>Good Morning 👋</h3>
+          <strong>Kaushik</strong>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+            Track your construction expenses easily
+          </div>
+        </div>
 
-      {/* MONTH SELECT */}
+        {/* BUDGET CARD */}
+        <div style={card}>
+          <div style={{ fontSize: 12, color: '#777' }}>
+            Budget vs Expense
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 'bold' }}>
+            ₹{totalSpent}
+          </div>
+          <div style={{ fontSize: 12, color: '#28a745' }}>
+            Total Spent
+          </div>
+        </div>
+      </div>
+
+      {/* MONTH SELECTOR */}
       <div className="form-row">
         <select
           value={selectedMonth}
@@ -179,148 +131,48 @@ function App() {
         </select>
       </div>
 
-      {/* SUMMARY */}
-      <div className="form-row">
-        <SummaryCard label="💰 Total Spent" value={`₹${total}`} />
-        <SummaryCard
-          label="📊 Entries"
-          value={filteredExpenses.length}
-        />
-      </div>
-
-      {/* ADD / EDIT FORM */}
-      <div style={{ background: 'white', padding: 15, borderRadius: 8 }}>
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-
-        <div className="form-row">
-          <input
-            type="number"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: e.target.value })
-            }
-          />
-
-          <select
-            value={form.category}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                category: e.target.value,
-                group: e.target.selectedOptions[0].dataset.group,
-              })
-            }
-          >
-            <option value="">Select Category</option>
-            {Object.entries(categories).map(([g, items]) => (
-              <optgroup key={g} label={g}>
-                {items.map((c) => (
-                  <option
-                    key={c._id}
-                    value={c.name}
-                    data-group={g}
-                  >
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            placeholder="Amount"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-          />
-
-          <input
-            placeholder="Notes"
-            value={form.notes}
-            onChange={(e) =>
-              setForm({ ...form, notes: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="form-row">
-          <input
-            type="file"
-            onChange={(e) =>
-              setForm({ ...form, Image: e.target.files[0] })
-            }
-          />
-
-          {editing ? (
-            <>
-              <button className="btn-add" onClick={update}>
-                Update
-              </button>
-              <button
-                className="btn-delete"
-                onClick={() => {
-                  setEditing(null);
-                  resetForm();
-                }}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button className="btn-add" onClick={add}>
-              Add Expense
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* CATEGORY PROGRESS */}
-      <h3 style={{ marginTop: 20 }}>Category Wise Expenses</h3>
-      {Object.entries(groupTotals).map(([g, amt]) => (
-        <div
-          key={g}
-          style={{
-            background: 'white',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span>
+      {/* CATEGORY CARDS */}
+      <h3>Category Wise Expenses</h3>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: 15,
+          marginBottom: 25,
+        }}
+      >
+        {Object.entries(categoryTotals).map(([g, amt]) => (
+          <div key={g} style={card}>
+            <div style={{ fontSize: 14 }}>
               {CATEGORY_ICONS[g] || '📦'} {g}
-            </span>
+            </div>
+
             <strong>₹{amt}</strong>
-          </div>
-          <div
-            style={{
-              height: 8,
-              background: '#e9ecef',
-              borderRadius: 4,
-              marginTop: 5,
-            }}
-          >
+
+            {/* PROGRESS */}
             <div
               style={{
-                width: `${(amt / maxGroup) * 100}%`,
-                height: '100%',
-                background: '#28a745',
+                height: 6,
+                background: '#e9ecef',
                 borderRadius: 4,
+                marginTop: 8,
               }}
-            />
+            >
+              <div
+                style={{
+                  width: `${(amt / maxCategory) * 100}%`,
+                  height: '100%',
+                  background: '#007bff',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
-      {/* TABLE */}
+      {/* RECENT TRANSACTIONS */}
+      <h3>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
           <tr>
@@ -328,13 +180,11 @@ function App() {
             <th>Category</th>
             <th>Amount</th>
             <th>Date</th>
-            <th>Notes</th>
             <th>Bill</th>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {filteredExpenses.map((e) => (
+          {filteredExpenses.slice(0, 5).map((e) => (
             <tr key={e._id}>
               <td>{e.quantity}</td>
               <td>
@@ -347,32 +197,17 @@ function App() {
               <td>
                 {new Date(e.date).toLocaleDateString()}
               </td>
-              <td>{e.notes}</td>
               <td>
                 {e.Image ? (
                   <img
                     src={e.Image}
-                    alt=""
+                    alt="Bill"
                     className="bill-thumb"
                     onClick={() => setPreviewImage(e.Image)}
                   />
                 ) : (
                   '—'
                 )}
-              </td>
-              <td>
-                <button
-                  className="btn-add"
-                  onClick={() => openEdit(e)}
-                >
-                  Edit
-                </button>{' '}
-                <button
-                  className="btn-delete"
-                  onClick={() => remove(e._id)}
-                >
-                  Delete
-                </button>
               </td>
             </tr>
           ))}
@@ -394,7 +229,7 @@ function App() {
         >
           <img
             src={previewImage}
-            alt=""
+            alt="Preview"
             style={{
               maxWidth: '90%',
               maxHeight: '90%',
@@ -407,19 +242,12 @@ function App() {
   );
 }
 
-/* SUMMARY CARD */
-const SummaryCard = ({ label, value }) => (
-  <div
-    style={{
-      background: 'white',
-      padding: 15,
-      borderRadius: 8,
-      flex: 1,
-    }}
-  >
-    <div style={{ fontSize: 12, color: '#777' }}>{label}</div>
-    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{value}</div>
-  </div>
-);
+/* CARD STYLE */
+const card = {
+  background: 'white',
+  padding: 15,
+  borderRadius: 10,
+  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+};
 
 export default App;
