@@ -56,7 +56,7 @@ function App() {
     setCategories(res.data || {});
   };
 
-  /* ===== ADD / UPDATE ===== */
+  /* ===== ADD / UPDATE (FIXED) ===== */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
       alert('Fill required fields');
@@ -64,20 +64,38 @@ function App() {
     }
 
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
+    fd.append('quantity', form.quantity);
+    fd.append('category', form.category);
+    fd.append('group', form.group);
+    fd.append('amount', form.amount);
+    fd.append('notes', form.notes || '');
 
-    if (editing) {
-      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
-      setExpenses((p) =>
-        p.map((e) => (e._id === editing._id ? res.data : e))
-      );
-      setEditing(null);
-    } else {
-      const res = await axios.post(`${API}/expenses`, fd);
-      setExpenses((p) => [res.data, ...p]);
+    // Only append image if re-selected
+    if (form.Image) {
+      fd.append('Image', form.Image);
     }
 
-    resetForm();
+    try {
+      if (editing) {
+        const res = await axios.put(
+          `${API}/expenses/${editing._id}`,
+          fd
+        );
+        setExpenses((prev) =>
+          prev.map((e) =>
+            e._id === editing._id ? res.data : e
+          )
+        );
+        setEditing(null);
+      } else {
+        const res = await axios.post(`${API}/expenses`, fd);
+        setExpenses((prev) => [res.data, ...prev]);
+      }
+      resetForm();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save expense');
+    }
   };
 
   const editExpense = (e) => {
@@ -90,6 +108,7 @@ function App() {
       notes: e.notes || '',
       Image: null,
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
@@ -164,7 +183,7 @@ function App() {
     <div className="container" style={{ maxWidth: 1200 }}>
       <h1>Construction Expense Dashboard</h1>
 
-      {/* ===== PROJECT OVERVIEW + GAUGE ===== */}
+      {/* PROJECT OVERVIEW */}
       <div style={row}>
         <div style={card}>
           <h3>🏗️ Project Overview</h3>
@@ -173,28 +192,30 @@ function App() {
             {PROJECT_INFO.location} · {PROJECT_INFO.type}
           </div>
 
-          <div style={overviewRow}>
-            <span>Budget</span>
-            <strong>₹{PROJECT_BUDGET.toLocaleString()}</strong>
-          </div>
-          <div style={overviewRow}>
-            <span>Spent</span>
-            <strong>₹{totalSpent.toLocaleString()}</strong>
-          </div>
-          <div style={overviewRow}>
-            <span>Remaining</span>
-            <strong style={{ color: remaining < 0 ? '#dc3545' : '#28a745' }}>
-              ₹{remaining.toLocaleString()}
-            </strong>
-          </div>
-          <div style={overviewRow}>
-            <span>Used</span>
-            <strong>{percentUsed}%</strong>
-          </div>
+          <OverviewRow label="Budget" value={`₹${PROJECT_BUDGET.toLocaleString()}`} />
+          <OverviewRow label="Spent" value={`₹${totalSpent.toLocaleString()}`} />
+          <OverviewRow
+            label="Remaining"
+            value={`₹${remaining.toLocaleString()}`}
+            color={remaining < 0 ? '#dc3545' : '#28a745'}
+          />
+          <OverviewRow label="Used" value={`${percentUsed}%`} />
 
-          <span className={`status ${status.replace(' ', '').toLowerCase()}`}>
-            {status}
-          </span>
+          <div style={{ fontWeight: 600, marginTop: 6 }}>
+            Status:{' '}
+            <span
+              style={{
+                color:
+                  status === 'Over Budget'
+                    ? '#dc3545'
+                    : status === 'At Risk'
+                    ? '#ffc107'
+                    : '#28a745',
+              }}
+            >
+              {status}
+            </span>
+          </div>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
@@ -204,7 +225,7 @@ function App() {
         </div>
       </div>
 
-      {/* ===== FILTERS ===== */}
+      {/* FILTERS */}
       <div style={row}>
         <div>
           <label>Month</label>
@@ -234,9 +255,9 @@ function App() {
         </div>
       </div>
 
-      {/* ===== ADD EXPENSE ===== */}
+      {/* ADD / EDIT */}
       <div style={{ ...card, marginBottom: 20 }}>
-        <h3>Add Expense</h3>
+        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
         <div className="form-row">
           <input
@@ -246,6 +267,7 @@ function App() {
               setForm({ ...form, quantity: e.target.value })
             }
           />
+
           <select
             value={form.category}
             onChange={(e) =>
@@ -267,6 +289,7 @@ function App() {
               </optgroup>
             ))}
           </select>
+
           <input
             type="number"
             placeholder="Amount"
@@ -275,6 +298,7 @@ function App() {
               setForm({ ...form, amount: e.target.value })
             }
           />
+
           <input
             placeholder="Notes"
             value={form.notes}
@@ -291,13 +315,20 @@ function App() {
               setForm({ ...form, Image: e.target.files[0] })
             }
           />
+
           <button className="btn-add" onClick={submit}>
             {editing ? 'Update' : 'Add'}
           </button>
+
+          {editing && (
+            <button className="btn-delete" onClick={() => setEditing(null)}>
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ===== CATEGORY SUMMARY ===== */}
+      {/* CATEGORY SUMMARY */}
       <h3>Category Wise Expenses</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
         {sortedCategories.map(([g, amt]) => (
@@ -318,7 +349,7 @@ function App() {
         ))}
       </div>
 
-      {/* ===== EXPENSE TABLE ===== */}
+      {/* EXPENSE TABLE */}
       <h3 style={{ marginTop: 30 }}>Expense Details</h3>
       <div style={{ overflowX: 'auto' }}>
         <table className="expense-table">
@@ -373,7 +404,7 @@ function App() {
         </table>
       </div>
 
-      {/* ===== IMAGE PREVIEW ===== */}
+      {/* IMAGE PREVIEW */}
       {previewImage && (
         <div style={overlay} onClick={() => setPreviewImage(null)}>
           <img src={previewImage} alt="Preview" style={previewImg} />
@@ -384,6 +415,13 @@ function App() {
 }
 
 /* ===== SMALL COMPONENTS & STYLES ===== */
+
+const OverviewRow = ({ label, value, color }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+    <span>{label}</span>
+    <strong style={{ color }}>{value}</strong>
+  </div>
+);
 
 const CircularGauge = ({ percent }) => (
   <div
@@ -418,7 +456,6 @@ const CircularGauge = ({ percent }) => (
 const row = { display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' };
 const card = { background: 'white', padding: 16, borderRadius: 10 };
 const muted = { fontSize: 12, color: '#777' };
-const overviewRow = { display: 'flex', justifyContent: 'space-between', marginTop: 4 };
 const between = { display: 'flex', justifyContent: 'space-between' };
 const progressBg = { height: 6, background: '#eee', borderRadius: 4, marginTop: 6 };
 const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
