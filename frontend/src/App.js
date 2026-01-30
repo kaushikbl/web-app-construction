@@ -4,7 +4,7 @@ import './App.css';
 
 const API = '/api';
 
-/* ICONS */
+/* CATEGORY ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
   'Masonry': '🧱',
@@ -15,13 +15,19 @@ const CATEGORY_ICONS = {
   'Transport & Miscellaneous': '🚚',
   'Professional & Government': '📄',
   'Site Preparation': '🚜',
+  'Carpentry & Wood Work': '🪚',
+  'Metal & Fabrication': '🔩',
+  'Exterior Works': '🌳',
 };
+
+const MONTH_BUDGET = 100000;
 
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
     quantity: '',
@@ -47,6 +53,64 @@ function App() {
     setExpenses(res.data);
   };
 
+  /* ADD / UPDATE */
+  const submit = async () => {
+    if (!form.quantity || !form.category || !form.group || !form.amount) {
+      alert('Please fill required fields');
+      return;
+    }
+
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
+
+    if (editing) {
+      const res = await axios.put(
+        `${API}/expenses/${editing._id}`,
+        fd
+      );
+      setExpenses((prev) =>
+        prev.map((e) => (e._id === editing._id ? res.data : e))
+      );
+      setEditing(null);
+    } else {
+      const res = await axios.post(`${API}/expenses`, fd);
+      setExpenses((prev) => [res.data, ...prev]);
+    }
+
+    resetForm();
+  };
+
+  const editExpense = (e) => {
+    setEditing(e);
+    setForm({
+      quantity: e.quantity,
+      category: e.category,
+      group: e.group,
+      amount: e.amount,
+      notes: e.notes || '',
+      Image: null,
+    });
+  };
+
+  const resetForm = () => {
+    setForm({
+      quantity: '',
+      category: '',
+      group: '',
+      amount: '',
+      notes: '',
+      Image: null,
+    });
+    const f = document.querySelector('input[type="file"]');
+    if (f) f.value = '';
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('Delete this expense?')) return;
+    await axios.delete(`${API}/expenses/${id}`);
+    setExpenses((prev) => prev.filter((e) => e._id !== id));
+  };
+
   /* MONTH FILTER */
   const filteredExpenses = selectedMonth
     ? expenses.filter((e) => {
@@ -64,6 +128,11 @@ function App() {
   const totalSpent = filteredExpenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
+  );
+
+  const budgetPercent = Math.min(
+    Math.round((totalSpent / MONTH_BUDGET) * 100),
+    100
   );
 
   const categoryTotals = filteredExpenses.reduce((acc, e) => {
@@ -88,81 +157,190 @@ function App() {
 
   return (
     <div className="container">
-      {/* TOP DASHBOARD ROW */}
-      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-        {/* GREETING CARD */}
+      <h1>Expense Dashboard</h1>
+
+      {/* TOP ROW */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
-          <h3 style={{ marginBottom: 5 }}>Good Morning 👋</h3>
+          <h3>Good Morning 👋</h3>
           <strong>Kaushik</strong>
-          <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-            Track your construction expenses easily
+          <div style={{ fontSize: 12, color: '#777' }}>
+            Track your construction expenses
           </div>
         </div>
 
-        {/* BUDGET CARD */}
-        <div style={card}>
+        <div style={{ ...card, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: '#777' }}>
             Budget vs Expense
           </div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>
-            ₹{totalSpent}
-          </div>
-          <div style={{ fontSize: 12, color: '#28a745' }}>
-            Total Spent
+          <CircularGauge percent={budgetPercent} />
+          <div style={{ fontSize: 12 }}>
+            ₹{totalSpent} / ₹{MONTH_BUDGET}
           </div>
         </div>
       </div>
 
-      {/* MONTH SELECTOR */}
-      <div className="form-row">
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-        >
-          <option value="">All Months</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {new Date(m + '-01').toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </option>
-          ))}
-        </select>
+      {/* FILTER + ADD */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          alignItems: 'flex-start',
+          marginBottom: 20,
+        }}
+      >
+        {/* COMPACT MONTH FILTER */}
+        <div style={{ minWidth: 180 }}>
+          <label
+            style={{
+              fontSize: 12,
+              color: '#777',
+              display: 'block',
+              marginBottom: 4,
+            }}
+          >
+            Month
+          </label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 8,
+              borderRadius: 6,
+              border: '1px solid #ccc',
+              background: 'white',
+            }}
+          >
+            <option value="">All Months</option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {new Date(m + '-01').toLocaleString('default', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ADD / EDIT FORM */}
+        <div style={{ ...card, flex: 3 }}>
+          <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+
+          <div className="form-row">
+            <input
+              type="number"
+              placeholder="Quantity"
+              value={form.quantity}
+              onChange={(e) =>
+                setForm({ ...form, quantity: e.target.value })
+              }
+            />
+
+            <select
+              value={form.category}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  category: e.target.value,
+                  group: e.target.selectedOptions[0].dataset.group,
+                })
+              }
+            >
+              <option value="">Select Category</option>
+              {Object.entries(categories).map(([g, items]) => (
+                <optgroup key={g} label={g}>
+                  {items.map((c) => (
+                    <option
+                      key={c._id}
+                      value={c.name}
+                      data-group={g}
+                    >
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              placeholder="Amount"
+              value={form.amount}
+              onChange={(e) =>
+                setForm({ ...form, amount: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Notes"
+              value={form.notes}
+              onChange={(e) =>
+                setForm({ ...form, notes: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="form-row">
+            <input
+              type="file"
+              onChange={(e) =>
+                setForm({ ...form, Image: e.target.files[0] })
+              }
+            />
+
+            <button className="btn-add" onClick={submit}>
+              {editing ? 'Update' : 'Add'}
+            </button>
+
+            {editing && (
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  setEditing(null);
+                  resetForm();
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* CATEGORY CARDS */}
+      {/* CATEGORY WISE */}
       <h3>Category Wise Expenses</h3>
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: 15,
+          gridTemplateColumns: '1fr 1fr',
+          gap: 16,
           marginBottom: 25,
         }}
       >
         {Object.entries(categoryTotals).map(([g, amt]) => (
           <div key={g} style={card}>
-            <div style={{ fontSize: 14 }}>
-              {CATEGORY_ICONS[g] || '📦'} {g}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>
+                {CATEGORY_ICONS[g] || '📦'} {g}
+              </span>
+              <strong>₹{amt}</strong>
             </div>
 
-            <strong>₹{amt}</strong>
-
-            {/* PROGRESS */}
             <div
               style={{
                 height: 6,
                 background: '#e9ecef',
                 borderRadius: 4,
-                marginTop: 8,
+                marginTop: 6,
               }}
             >
               <div
                 style={{
                   width: `${(amt / maxCategory) * 100}%`,
                   height: '100%',
-                  background: '#007bff',
+                  background: '#28a745',
                   borderRadius: 4,
                 }}
               />
@@ -180,7 +358,9 @@ function App() {
             <th>Category</th>
             <th>Amount</th>
             <th>Date</th>
+            <th>Notes</th>
             <th>Bill</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -194,9 +374,8 @@ function App() {
                 <strong>{e.category}</strong>
               </td>
               <td>₹{e.amount}</td>
-              <td>
-                {new Date(e.date).toLocaleDateString()}
-              </td>
+              <td>{new Date(e.date).toLocaleDateString()}</td>
+              <td>{e.notes || '—'}</td>
               <td>
                 {e.Image ? (
                   <img
@@ -208,6 +387,20 @@ function App() {
                 ) : (
                   '—'
                 )}
+              </td>
+              <td>
+                <button
+                  className="btn-add"
+                  onClick={() => editExpense(e)}
+                >
+                  Edit
+                </button>{' '}
+                <button
+                  className="btn-delete"
+                  onClick={() => remove(e._id)}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
@@ -242,12 +435,43 @@ function App() {
   );
 }
 
-/* CARD STYLE */
+/* COMPONENTS */
+
+const CircularGauge = ({ percent }) => (
+  <div
+    style={{
+      width: 120,
+      height: 120,
+      borderRadius: '50%',
+      background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '10px auto',
+    }}
+  >
+    <div
+      style={{
+        width: 90,
+        height: 90,
+        borderRadius: '50%',
+        background: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 'bold',
+      }}
+    >
+      {percent}%
+    </div>
+  </div>
+);
+
 const card = {
   background: 'white',
   padding: 15,
   borderRadius: 10,
-  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+  flex: 1,
 };
 
 export default App;
