@@ -7,10 +7,10 @@ const API = '/api';
 /* CATEGORY ICONS */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
-  'Masonry': '🧱',
-  'Roofing': '🏠',
-  'Plumbing': '🚰',
-  'Electrical': '💡',
+  Masonry: '🧱',
+  Roofing: '🏠',
+  Plumbing: '🚰',
+  Electrical: '💡',
   'Labor & Services': '👷',
   'Transport & Miscellaneous': '🚚',
   'Professional & Government': '📄',
@@ -51,6 +51,19 @@ function App() {
   const loadExpenses = async () => {
     const res = await axios.get(`${API}/expenses`);
     setExpenses(res.data);
+  };
+
+  /* ===== CLUSTER-SAFE IMAGE PATH FIX ===== */
+  const getImageUrl = (img) => {
+    if (!img) return null;
+
+    // If backend stored absolute URL, extract /uploads path
+    if (img.includes('/uploads/')) {
+      return img.substring(img.indexOf('/uploads/'));
+    }
+
+    // Already relative
+    return img;
   };
 
   /* ADD / UPDATE */
@@ -181,36 +194,12 @@ function App() {
       </div>
 
       {/* FILTER + ADD */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          alignItems: 'flex-start',
-          marginBottom: 20,
-        }}
-      >
-        {/* COMPACT MONTH FILTER */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={{ minWidth: 180 }}>
-          <label
-            style={{
-              fontSize: 12,
-              color: '#777',
-              display: 'block',
-              marginBottom: 4,
-            }}
-          >
-            Month
-          </label>
+          <label style={{ fontSize: 12, color: '#777' }}>Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 8,
-              borderRadius: 6,
-              border: '1px solid #ccc',
-              background: 'white',
-            }}
           >
             <option value="">All Months</option>
             {months.map((m) => (
@@ -224,7 +213,6 @@ function App() {
           </select>
         </div>
 
-        {/* ADD / EDIT FORM */}
         <div style={{ ...card, flex: 3 }}>
           <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
@@ -311,37 +299,20 @@ function App() {
 
       {/* CATEGORY WISE */}
       <h3>Category Wise Expenses</h3>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 16,
-          marginBottom: 25,
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {Object.entries(categoryTotals).map(([g, amt]) => (
           <div key={g} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>
-                {CATEGORY_ICONS[g] || '📦'} {g}
-              </span>
+              <span>{CATEGORY_ICONS[g] || '📦'} {g}</span>
               <strong>₹{amt}</strong>
             </div>
 
-            <div
-              style={{
-                height: 6,
-                background: '#e9ecef',
-                borderRadius: 4,
-                marginTop: 6,
-              }}
-            >
+            <div style={{ height: 6, background: '#e9ecef', borderRadius: 4 }}>
               <div
                 style={{
                   width: `${(amt / maxCategory) * 100}%`,
                   height: '100%',
                   background: '#28a745',
-                  borderRadius: 4,
                 }}
               />
             </div>
@@ -364,46 +335,45 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {filteredExpenses.slice(0, 5).map((e) => (
-            <tr key={e._id}>
-              <td>{e.quantity}</td>
-              <td>
-                <div style={{ fontSize: 12, color: '#777' }}>
-                  {CATEGORY_ICONS[e.group] || '📦'} {e.group}
-                </div>
-                <strong>{e.category}</strong>
-              </td>
-              <td>₹{e.amount}</td>
-              <td>{new Date(e.date).toLocaleDateString()}</td>
-              <td>{e.notes || '—'}</td>
-              <td>
-                {e.Image ? (
-                  <img
-                    src={e.Image}
-                    alt="Bill"
-                    className="bill-thumb"
-                    onClick={() => setPreviewImage(e.Image)}
-                  />
-                ) : (
-                  '—'
-                )}
-              </td>
-              <td>
-                <button
-                  className="btn-add"
-                  onClick={() => editExpense(e)}
-                >
-                  Edit
-                </button>{' '}
-                <button
-                  className="btn-delete"
-                  onClick={() => remove(e._id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+          {filteredExpenses.slice(0, 5).map((e) => {
+            const imgUrl = getImageUrl(e.Image);
+
+            return (
+              <tr key={e._id}>
+                <td>{e.quantity}</td>
+                <td>
+                  <div style={{ fontSize: 12, color: '#777' }}>
+                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                  </div>
+                  <strong>{e.category}</strong>
+                </td>
+                <td>₹{e.amount}</td>
+                <td>{new Date(e.date).toLocaleDateString()}</td>
+                <td>{e.notes || '—'}</td>
+                <td>
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt="Bill"
+                      className="bill-thumb"
+                      onClick={() => setPreviewImage(imgUrl)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td>
+                  <button className="btn-add" onClick={() => editExpense(e)}>
+                    Edit
+                  </button>{' '}
+                  <button className="btn-delete" onClick={() => remove(e._id)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -414,10 +384,11 @@ function App() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.8)',
+            background: 'rgba(0,0,0,0.85)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 9999,
           }}
         >
           <img
@@ -428,6 +399,7 @@ function App() {
               maxHeight: '90%',
               borderRadius: 8,
             }}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
@@ -447,7 +419,6 @@ const CircularGauge = ({ percent }) => (
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      margin: '10px auto',
     }}
   >
     <div
@@ -471,7 +442,6 @@ const card = {
   background: 'white',
   padding: 15,
   borderRadius: 10,
-  flex: 1,
 };
 
 export default App;
