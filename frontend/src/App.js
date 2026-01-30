@@ -81,7 +81,10 @@ function App() {
     if (form.Image) fd.append('Image', form.Image);
 
     if (editing) {
-      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
+      const res = await axios.put(
+        `${API}/expenses/${editing._id}`,
+        fd
+      );
       setExpenses((p) =>
         p.map((e) => (e._id === editing._id ? res.data : e))
       );
@@ -126,26 +129,20 @@ function App() {
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* ===== MONTH LIST (ALL MONTHS) ===== */
-  const months = [
-    ...new Set(
-      expenses.map((e) => {
-        const d = new Date(e.date);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      })
-    ),
-  ].sort();
-
-  /* ===== FILTER BY MONTH ===== */
+  /* ===== MONTH FILTER ===== */
   const filteredExpenses = selectedMonth
     ? expenses.filter((e) => {
         const d = new Date(e.date);
-        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return m === selectedMonth;
+        return (
+          d.getFullYear() +
+            '-' +
+            String(d.getMonth() + 1).padStart(2, '0') ===
+          selectedMonth
+        );
       })
     : expenses;
 
-  /* ===== METRICS (MONTH BASED) ===== */
+  /* ===== METRICS ===== */
   const monthlySpent = filteredExpenses.reduce(
     (s, e) => s + Number(e.amount || 0),
     0
@@ -156,17 +153,46 @@ function App() {
     100
   );
 
-  /* ===== CATEGORY TOTALS (MONTH BASED) ===== */
+  const totalProjectSpent = expenses.reduce(
+    (s, e) => s + Number(e.amount || 0),
+    0
+  );
+
+  const projectPercent = Math.round(
+    (totalProjectSpent / PROJECT_BUDGET) * 100
+  );
+
+  const projectStatus =
+    projectPercent >= 100
+      ? 'Over Budget'
+      : projectPercent >= 85
+      ? 'At Risk'
+      : 'On Track';
+
+  /* ===== CATEGORY TOTALS ===== */
   const categoryTotals = filteredExpenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
     return acc;
   }, {});
 
-  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
-
   const topDrivers = Object.entries(categoryTotals)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
+
+  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
+
+  const months = [
+    ...new Set(
+      expenses.map((e) => {
+        const d = new Date(e.date);
+        return (
+          d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0')
+        );
+      })
+    ),
+  ];
 
   return (
     <div className="container">
@@ -181,7 +207,7 @@ function App() {
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
-          <div style={muted}>Monthly Budget</div>
+          <div style={muted}>Monthly Budget Utilization</div>
           <CircularGauge percent={monthlyPercent} />
           <div style={muted}>
             ₹{monthlySpent.toLocaleString()} / ₹{MONTH_BUDGET.toLocaleString()}
@@ -189,10 +215,33 @@ function App() {
         </div>
 
         <div style={card}>
+          <h4>🏗 Project Status</h4>
+          <div>Total Budget: ₹{PROJECT_BUDGET.toLocaleString()}</div>
+          <div>Spent: ₹{totalProjectSpent.toLocaleString()}</div>
+          <div>Used: {projectPercent}%</div>
+          <div
+            style={{
+              marginTop: 6,
+              fontWeight: 600,
+              color:
+                projectStatus === 'Over Budget'
+                  ? '#dc3545'
+                  : projectStatus === 'At Risk'
+                  ? '#ffc107'
+                  : '#28a745',
+            }}
+          >
+            {projectStatus}
+          </div>
+        </div>
+
+        <div style={card}>
           <h4>🔥 Top Cost Drivers</h4>
-          {topDrivers.length === 0 && <div style={muted}>No data</div>}
+          {topDrivers.length === 0 && (
+            <div style={muted}>No expenses yet</div>
+          )}
           {topDrivers.map(([g, amt]) => (
-            <div key={g}>
+            <div key={g} style={{ marginBottom: 6 }}>
               {CATEGORY_ICONS[g] || '📦'} {g}
               <div style={muted}>₹{amt.toLocaleString()}</div>
             </div>
@@ -200,10 +249,13 @@ function App() {
         </div>
       </div>
 
-      {/* ===== MONTH SELECTOR ===== */}
+      {/* ===== MONTH FILTER ===== */}
       <div style={{ marginBottom: 20 }}>
         <label style={muted}>Month</label>
-        <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+        >
           <option value="">All Months</option>
           {months.map((m) => (
             <option key={m} value={m}>
@@ -221,17 +273,24 @@ function App() {
         <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
 
         <div className="form-row">
-          <input placeholder="Quantity" value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+          <input
+            placeholder="Quantity"
+            value={form.quantity}
+            onChange={(e) =>
+              setForm({ ...form, quantity: e.target.value })
+            }
+          />
 
-          <select value={form.category}
+          <select
+            value={form.category}
             onChange={(e) =>
               setForm({
                 ...form,
                 category: e.target.value,
                 group: e.target.selectedOptions[0].dataset.group,
               })
-            }>
+            }
+          >
             <option value="">Select Category</option>
             {Object.entries(categories).map(([g, items]) => (
               <optgroup key={g} label={g}>
@@ -244,22 +303,44 @@ function App() {
             ))}
           </select>
 
-          <input type="number" placeholder="Amount" value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <input
+            type="number"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={(e) =>
+              setForm({ ...form, amount: e.target.value })
+            }
+          />
 
-          <input placeholder="Notes" value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <input
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) =>
+              setForm({ ...form, notes: e.target.value })
+            }
+          />
         </div>
 
         <div className="form-row">
-          <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
+          <input
+            type="file"
+            onChange={(e) =>
+              setForm({ ...form, Image: e.target.files[0] })
+            }
+          />
 
           <button className="btn-add" onClick={submit}>
             {editing ? 'Update' : 'Add'}
           </button>
 
           {editing && (
-            <button className="btn-delete" onClick={() => { setEditing(null); resetForm(); }}>
+            <button
+              className="btn-delete"
+              onClick={() => {
+                setEditing(null);
+                resetForm();
+              }}
+            >
               Cancel
             </button>
           )}
@@ -287,11 +368,74 @@ function App() {
         ))}
       </div>
 
+      {/* ===== RECENT TRANSACTIONS ===== */}
+      <h3 style={{ marginTop: 30 }}>Recent Transactions</h3>
+      <table className="expense-table">
+        <thead>
+          <tr>
+            <th>Qty</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Bill</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredExpenses.slice(0, 6).map((e) => {
+            const imgUrl = getImageUrl(e.Image);
+            return (
+              <tr key={e._id}>
+                <td>{e.quantity}</td>
+                <td>
+                  <div style={muted}>
+                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                  </div>
+                  <strong>{e.category}</strong>
+                </td>
+                <td>₹{e.amount.toLocaleString()}</td>
+                <td>{new Date(e.date).toLocaleDateString()}</td>
+                <td>{e.notes || '—'}</td>
+                <td>
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt="Bill"
+                      className="bill-thumb"
+                      onClick={() => setPreviewImage(imgUrl)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td>
+                  <button className="btn-add" onClick={() => editExpense(e)}>
+                    Edit
+                  </button>{' '}
+                  <button
+                    className="btn-delete"
+                    onClick={() => remove(e._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
       {/* ===== IMAGE PREVIEW ===== */}
       {previewImage && (
         <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} alt="Preview" style={previewImg}
-            onClick={(e) => e.stopPropagation()} />
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={previewImg}
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
@@ -301,29 +445,69 @@ function App() {
 /* ===== SMALL COMPONENTS ===== */
 
 const CircularGauge = ({ percent }) => (
-  <div style={{
-    width: 120, height: 120, borderRadius: '50%',
-    background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  }}>
-    <div style={{
-      width: 90, height: 90, borderRadius: '50%',
-      background: 'white', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', fontWeight: 'bold',
-    }}>
+  <div
+    style={{
+      width: 120,
+      height: 120,
+      borderRadius: '50%',
+      background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <div
+      style={{
+        width: 90,
+        height: 90,
+        borderRadius: '50%',
+        background: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 'bold',
+      }}
+    >
       {percent}%
     </div>
   </div>
 );
 
-const card = { background: 'white', padding: 15, borderRadius: 10 };
-const muted = { fontSize: 12, color: '#777' };
-const progressBg = { height: 6, background: '#e9ecef', borderRadius: 4, marginTop: 6 };
-const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
-const overlay = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+const card = {
+  background: 'white',
+  padding: 15,
+  borderRadius: 10,
 };
-const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
+
+const muted = { fontSize: 12, color: '#777' };
+
+const progressBg = {
+  height: 6,
+  background: '#e9ecef',
+  borderRadius: 4,
+  marginTop: 6,
+};
+
+const progressBar = {
+  height: '100%',
+  background: '#28a745',
+  borderRadius: 4,
+};
+
+const overlay = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.85)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 9999,
+};
+
+const previewImg = {
+  maxWidth: '90%',
+  maxHeight: '90%',
+  borderRadius: 8,
+};
 
 export default App;
