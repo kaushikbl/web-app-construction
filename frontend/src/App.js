@@ -3,21 +3,25 @@ import axios from 'axios';
 import './App.css';
 
 const API = '/api';
-const BACKEND = 'http://localhost:5000';
 
-/* ===== PROJECT INFO ===== */
-const PROJECT_BUDGET = 11200000;
-const PROJECT_INFO = {
-  name: 'Residential House Construction',
-  location: 'Bengaluru',
-  type: 'Independent House (G+4)',
+/* ICONS */
+const CATEGORY_ICONS = {
+  'Foundation & Structure': '🏗️',
+  'Masonry': '🧱',
+  'Roofing': '🏠',
+  'Plumbing': '🚰',
+  'Electrical': '💡',
+  'Labor & Services': '👷',
+  'Transport & Miscellaneous': '🚚',
+  'Professional & Government': '📄',
+  'Site Preparation': '🚜',
 };
 
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
-  const [editing, setEditing] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
 
   const [form, setForm] = useState({
     quantity: '',
@@ -29,172 +33,146 @@ function App() {
   });
 
   useEffect(() => {
-    loadExpenses();
     loadCategories();
+    loadExpenses();
   }, []);
-
-  const loadExpenses = async () => {
-    const res = await axios.get(`${API}/expenses`);
-    setExpenses(res.data);
-  };
 
   const loadCategories = async () => {
     const res = await axios.get(`${API}/categories`);
     setCategories(res.data || {});
   };
 
-  /* ===== ADD / UPDATE ===== */
-  const submit = async () => {
-    if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Fill required fields');
-      return;
-    }
-
-    const fd = new FormData();
-    fd.append('quantity', form.quantity);
-    fd.append('category', form.category);
-    fd.append('group', form.group);
-    fd.append('amount', form.amount);
-    fd.append('notes', form.notes || '');
-    if (form.Image) fd.append('Image', form.Image);
-
-    if (editing) {
-      const res = await axios.put(
-        `${API}/expenses/${editing._id}`,
-        fd
-      );
-      setExpenses((p) =>
-        p.map((e) => (e._id === editing._id ? res.data : e))
-      );
-      setEditing(null);
-    } else {
-      const res = await axios.post(`${API}/expenses`, fd);
-      setExpenses((p) => [res.data, ...p]);
-    }
-
-    resetForm();
+  const loadExpenses = async () => {
+    const res = await axios.get(`${API}/expenses`);
+    setExpenses(res.data);
   };
 
-  const editExpense = (e) => {
-    setEditing(e);
-    setForm({
-      quantity: e.quantity,
-      category: e.category,
-      group: e.group,
-      amount: e.amount,
-      notes: e.notes || '',
-      Image: null,
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  /* MONTH FILTER */
+  const filteredExpenses = selectedMonth
+    ? expenses.filter((e) => {
+        const d = new Date(e.date);
+        return (
+          d.getFullYear() +
+            '-' +
+            String(d.getMonth() + 1).padStart(2, '0') ===
+          selectedMonth
+        );
+      })
+    : expenses;
 
-  const resetForm = () => {
-    setForm({
-      quantity: '',
-      category: '',
-      group: '',
-      amount: '',
-      notes: '',
-      Image: null,
-    });
-    const f = document.querySelector('input[type="file"]');
-    if (f) f.value = '';
-  };
+  /* METRICS */
+  const totalSpent = filteredExpenses.reduce(
+    (s, e) => s + Number(e.amount || 0),
+    0
+  );
 
-  const remove = async (id) => {
-    if (!window.confirm('Delete expense?')) return;
-    await axios.delete(`${API}/expenses/${id}`);
-    setExpenses((p) => p.filter((e) => e._id !== id));
-  };
+  const categoryTotals = filteredExpenses.reduce((acc, e) => {
+    acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
+    return acc;
+  }, {});
 
-  /* ===== IMAGE URL NORMALIZER (THE FIX) ===== */
-  const resolveImageUrl = (img) => {
-    if (!img) return null;
-    return img.startsWith('http') ? img : `${BACKEND}${img}`;
-  };
+  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
+
+  const months = [
+    ...new Set(
+      expenses.map((e) => {
+        const d = new Date(e.date);
+        return (
+          d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0')
+        );
+      })
+    ),
+  ];
 
   return (
-    <div className="container" style={{ maxWidth: 1200 }}>
-      <h1>Construction Expense Dashboard</h1>
-
-      {/* ===== ADD / EDIT ===== */}
-      <div className="card">
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-
-        <div className="form-row">
-          <input
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: e.target.value })
-            }
-          />
-
-          <select
-            value={form.category}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                category: e.target.value,
-                group: e.target.selectedOptions[0].dataset.group,
-              })
-            }
-          >
-            <option value="">Select Category</option>
-            {Object.entries(categories).map(([g, items]) => (
-              <optgroup key={g} label={g}>
-                {items.map((c) => (
-                  <option key={c._id} value={c.name} data-group={g}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            placeholder="Amount"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-          />
-
-          <input
-            placeholder="Notes"
-            value={form.notes}
-            onChange={(e) =>
-              setForm({ ...form, notes: e.target.value })
-            }
-          />
+    <div className="container">
+      {/* TOP DASHBOARD ROW */}
+      <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+        {/* GREETING CARD */}
+        <div style={card}>
+          <h3 style={{ marginBottom: 5 }}>Good Morning 👋</h3>
+          <strong>Kaushik</strong>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+            Track your construction expenses easily
+          </div>
         </div>
 
-        <div className="form-row">
-          <input
-            type="file"
-            onChange={(e) =>
-              setForm({ ...form, Image: e.target.files[0] })
-            }
-          />
-
-          <button className="btn-add" onClick={submit}>
-            {editing ? 'Update' : 'Add'}
-          </button>
-
-          {editing && (
-            <button
-              className="btn-delete"
-              onClick={() => setEditing(null)}
-            >
-              Cancel
-            </button>
-          )}
+        {/* BUDGET CARD */}
+        <div style={card}>
+          <div style={{ fontSize: 12, color: '#777' }}>
+            Budget vs Expense
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 'bold' }}>
+            ₹{totalSpent}
+          </div>
+          <div style={{ fontSize: 12, color: '#28a745' }}>
+            Total Spent
+          </div>
         </div>
       </div>
 
-      {/* ===== TABLE ===== */}
-      <h3 style={{ marginTop: 30 }}>Expense Details</h3>
+      {/* MONTH SELECTOR */}
+      <div className="form-row">
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+        >
+          <option value="">All Months</option>
+          {months.map((m) => (
+            <option key={m} value={m}>
+              {new Date(m + '-01').toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* CATEGORY CARDS */}
+      <h3>Category Wise Expenses</h3>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: 15,
+          marginBottom: 25,
+        }}
+      >
+        {Object.entries(categoryTotals).map(([g, amt]) => (
+          <div key={g} style={card}>
+            <div style={{ fontSize: 14 }}>
+              {CATEGORY_ICONS[g] || '📦'} {g}
+            </div>
+
+            <strong>₹{amt}</strong>
+
+            {/* PROGRESS */}
+            <div
+              style={{
+                height: 6,
+                background: '#e9ecef',
+                borderRadius: 4,
+                marginTop: 8,
+              }}
+            >
+              <div
+                style={{
+                  width: `${(amt / maxCategory) * 100}%`,
+                  height: '100%',
+                  background: '#007bff',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* RECENT TRANSACTIONS */}
+      <h3>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
           <tr>
@@ -202,110 +180,74 @@ function App() {
             <th>Category</th>
             <th>Amount</th>
             <th>Date</th>
-            <th>Notes</th>
             <th>Bill</th>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {expenses.map((e) => {
-            const imageUrl = resolveImageUrl(e.Image);
-
-            return (
-              <tr key={e._id}>
-                <td>{e.quantity}</td>
-                <td>{e.category}</td>
-                <td>₹{e.amount}</td>
-                <td>{new Date(e.date).toLocaleDateString()}</td>
-                <td>{e.notes || '—'}</td>
-                <td>
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="Bill"
-                      className="bill-thumb"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setPreviewImage(imageUrl)}
-                    />
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td>
-                  <button
-                    className="btn-add"
-                    onClick={() => editExpense(e)}
-                  >
-                    Edit
-                  </button>{' '}
-                  <button
-                    className="btn-delete"
-                    onClick={() => remove(e._id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+          {filteredExpenses.slice(0, 5).map((e) => (
+            <tr key={e._id}>
+              <td>{e.quantity}</td>
+              <td>
+                <div style={{ fontSize: 12, color: '#777' }}>
+                  {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                </div>
+                <strong>{e.category}</strong>
+              </td>
+              <td>₹{e.amount}</td>
+              <td>
+                {new Date(e.date).toLocaleDateString()}
+              </td>
+              <td>
+                {e.Image ? (
+                  <img
+                    src={e.Image}
+                    alt="Bill"
+                    className="bill-thumb"
+                    onClick={() => setPreviewImage(e.Image)}
+                  />
+                ) : (
+                  '—'
+                )}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
-      {/* ===== IMAGE PREVIEW ===== */}
+      {/* IMAGE PREVIEW */}
       {previewImage && (
-        <div style={overlay}>
-          <div style={modal}>
-            <button
-              style={closeBtn}
-              onClick={() => setPreviewImage(null)}
-            >
-              ✕
-            </button>
-            <img
-              src={previewImage}
-              alt="Preview"
-              style={previewImg}
-            />
-          </div>
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: 8,
+            }}
+          />
         </div>
       )}
     </div>
   );
 }
 
-/* ===== STYLES ===== */
-const overlay = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.85)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 9999,
-};
-
-const modal = {
-  position: 'relative',
-  background: '#fff',
-  padding: 10,
-  borderRadius: 8,
-  maxWidth: '90%',
-  maxHeight: '90%',
-};
-
-const previewImg = {
-  maxWidth: '100%',
-  maxHeight: '80vh',
-};
-
-const closeBtn = {
-  position: 'absolute',
-  top: 5,
-  right: 10,
-  fontSize: 22,
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
+/* CARD STYLE */
+const card = {
+  background: 'white',
+  padding: 15,
+  borderRadius: 10,
+  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
 };
 
 export default App;
