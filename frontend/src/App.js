@@ -26,14 +26,20 @@ const CATEGORY_ICONS = {
 };
 
 function App() {
+  /* ===== LOGIN STATE ===== */
+  const [user, setUser] = useState(
+    localStorage.getItem('userName')
+      ? { name: localStorage.getItem('userName') }
+      : null
+  );
+  const [loginName, setLoginName] = useState('');
+
+  /* ===== DATA STATE ===== */
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [selectedMonth, setSelectedMonth] = useState('');
   const [editing, setEditing] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-
-  /* ===== LOGIN (UI ONLY) ===== */
-  const [user, setUser] = useState({ name: 'Kaushik', loggedIn: true });
 
   const [form, setForm] = useState({
     quantity: '',
@@ -44,10 +50,13 @@ function App() {
     Image: null,
   });
 
+  /* ===== LOAD DATA ===== */
   useEffect(() => {
-    loadCategories();
-    loadExpenses();
-  }, []);
+    if (user) {
+      loadCategories();
+      loadExpenses();
+    }
+  }, [user]);
 
   const loadCategories = async () => {
     const res = await axios.get(`${API}/categories`);
@@ -59,7 +68,23 @@ function App() {
     setExpenses(res.data);
   };
 
-  /* ===== IMAGE FIX ===== */
+  /* ===== LOGIN HANDLERS ===== */
+  const handleLogin = () => {
+    if (!loginName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    localStorage.setItem('userName', loginName);
+    setUser({ name: loginName });
+    setLoginName('');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userName');
+    setUser(null);
+  };
+
+  /* ===== IMAGE PATH FIX ===== */
   const getImageUrl = (img) => {
     if (!img) return null;
     if (img.includes('/uploads/')) {
@@ -71,7 +96,7 @@ function App() {
   /* ===== ADD / UPDATE ===== */
   const submit = async () => {
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Fill required fields');
+      alert('Please fill required fields');
       return;
     }
 
@@ -85,13 +110,14 @@ function App() {
 
     if (editing) {
       const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
-      setExpenses((p) => p.map((e) => (e._id === editing._id ? res.data : e)));
+      setExpenses((p) =>
+        p.map((e) => (e._id === editing._id ? res.data : e))
+      );
       setEditing(null);
     } else {
       const res = await axios.post(`${API}/expenses`, fd);
       setExpenses((p) => [res.data, ...p]);
     }
-
     resetForm();
   };
 
@@ -122,7 +148,7 @@ function App() {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete expense?')) return;
+    if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
@@ -144,14 +170,31 @@ function App() {
     : expenses;
 
   /* ===== METRICS ===== */
-  const monthlySpent = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const monthlyPercent = Math.min(Math.round((monthlySpent / MONTH_BUDGET) * 100), 100);
+  const monthlySpent = filteredExpenses.reduce(
+    (s, e) => s + Number(e.amount || 0),
+    0
+  );
 
-  const totalProjectSpent = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const projectPercent = Math.round((totalProjectSpent / PROJECT_BUDGET) * 100);
+  const monthlyPercent = Math.min(
+    Math.round((monthlySpent / MONTH_BUDGET) * 100),
+    100
+  );
+
+  const totalProjectSpent = expenses.reduce(
+    (s, e) => s + Number(e.amount || 0),
+    0
+  );
+
+  const projectPercent = Math.round(
+    (totalProjectSpent / PROJECT_BUDGET) * 100
+  );
 
   const projectStatus =
-    projectPercent >= 100 ? 'Over Budget' : projectPercent >= 85 ? 'At Risk' : 'On Track';
+    projectPercent >= 100
+      ? 'Over Budget'
+      : projectPercent >= 85
+      ? 'At Risk'
+      : 'On Track';
 
   const categoryTotals = filteredExpenses.reduce((acc, e) => {
     acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
@@ -164,16 +207,41 @@ function App() {
 
   const maxCategory = Math.max(...Object.values(categoryTotals), 1);
 
+  /* ===== LOGIN SCREEN ===== */
+  if (!user) {
+    return (
+      <div className="container" style={{ maxWidth: 400, marginTop: 100 }}>
+        <div style={card}>
+          <h2>👋 Welcome</h2>
+          <p style={muted}>Enter your name to continue</p>
+          <input
+            placeholder="Your Name"
+            value={loginName}
+            onChange={(e) => setLoginName(e.target.value)}
+            style={{ width: '100%', marginBottom: 10 }}
+          />
+          <button className="btn-add" style={{ width: '100%' }} onClick={handleLogin}>
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== DASHBOARD ===== */
   return (
     <div className="container">
-      <h1>Expense Dashboard</h1>
+      <h1>Expense-Dashboard</h1>
 
       {/* ===== SUMMARY ROW ===== */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
           <h3>Good Day 👋</h3>
           <strong>{user.name}</strong>
           <div style={muted}>Residential Building (G+3)</div>
+          <button className="btn-delete" style={{ marginTop: 10 }} onClick={handleLogout}>
+            Logout
+          </button>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
@@ -186,10 +254,20 @@ function App() {
 
         <div style={card}>
           <h4>🏗 Project Status</h4>
-          <div>Total: ₹{PROJECT_BUDGET.toLocaleString()}</div>
+          <div>Total Budget: ₹{PROJECT_BUDGET.toLocaleString()}</div>
           <div>Spent: ₹{totalProjectSpent.toLocaleString()}</div>
           <div>Used: {projectPercent}%</div>
-          <div style={{ fontWeight: 600, color: projectStatus === 'Over Budget' ? '#dc3545' : projectStatus === 'At Risk' ? '#ffc107' : '#28a745' }}>
+          <div
+            style={{
+              fontWeight: 600,
+              color:
+                projectStatus === 'Over Budget'
+                  ? '#dc3545'
+                  : projectStatus === 'At Risk'
+                  ? '#ffc107'
+                  : '#28a745',
+            }}
+          >
             {projectStatus}
           </div>
         </div>
@@ -204,20 +282,6 @@ function App() {
             </div>
           ))}
         </div>
-
-        {/* LOGIN CARD */}
-        <div style={card}>
-          <h4>👤 Account</h4>
-          <div style={muted}>Logged in as</div>
-          <strong>{user.name}</strong>
-          <button
-            className="btn-delete"
-            style={{ marginTop: 10 }}
-            onClick={() => setUser({ name: 'Guest', loggedIn: false })}
-          >
-            Logout
-          </button>
-        </div>
       </div>
 
       {/* ===== MONTH SELECT ===== */}
@@ -226,33 +290,25 @@ function App() {
         <option value="">All Months</option>
         {months.map((m) => (
           <option key={m} value={m}>
-            {new Date(m + '-01').toLocaleString('default', { month: 'short', year: 'numeric' })}
+            {new Date(m + '-01').toLocaleString('default', {
+              month: 'short',
+              year: 'numeric',
+            })}
           </option>
         ))}
       </select>
 
       {/* ===== ADD / EDIT ===== */}
-      <div style={{ ...card, marginTop: 20 }}>
+      <div style={{ ...card, marginBottom: 25 }}>
         <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
         <div className="form-row">
           <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-          <select
-            value={form.category}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                category: e.target.value,
-                group: e.target.selectedOptions[0].dataset.group,
-              })
-            }
-          >
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}>
             <option value="">Select Category</option>
             {Object.entries(categories).map(([g, items]) => (
               <optgroup key={g} label={g}>
                 {items.map((c) => (
-                  <option key={c._id} value={c.name} data-group={g}>
-                    {c.name}
-                  </option>
+                  <option key={c._id} value={c.name} data-group={g}>{c.name}</option>
                 ))}
               </optgroup>
             ))}
@@ -268,7 +324,6 @@ function App() {
       </div>
 
       {/* ===== TABLE ===== */}
-      <h3 style={{ marginTop: 30 }}>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
           <tr>
@@ -276,19 +331,16 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {filteredExpenses.slice(0, 6).map((e) => {
-            const img = getImageUrl(e.Image);
+          {filteredExpenses.map((e) => {
+            const imgUrl = getImageUrl(e.Image);
             return (
               <tr key={e._id}>
                 <td>{e.quantity}</td>
-                <td>
-                  <div style={muted}>{CATEGORY_ICONS[e.group] || '📦'} {e.group}</div>
-                  <strong>{e.category}</strong>
-                </td>
+                <td><div style={muted}>{e.group}</div><strong>{e.category}</strong></td>
                 <td>₹{e.amount.toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || '—'}</td>
-                <td>{img ? <img src={img} className="bill-thumb" onClick={() => setPreviewImage(img)} /> : '—'}</td>
+                <td>{imgUrl ? <img src={imgUrl} className="bill-thumb" onClick={() => setPreviewImage(imgUrl)} /> : '—'}</td>
                 <td>
                   <button className="btn-add" onClick={() => editExpense(e)}>Edit</button>{' '}
                   <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
@@ -301,7 +353,7 @@ function App() {
 
       {previewImage && (
         <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} style={previewImg} />
+          <img src={previewImage} style={previewImg} onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </div>
@@ -310,8 +362,17 @@ function App() {
 
 /* ===== SMALL COMPONENTS ===== */
 const CircularGauge = ({ percent }) => (
-  <div style={{ width: 120, height: 120, borderRadius: '50%', background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+  <div style={{
+    width: 120, height: 120, borderRadius: '50%',
+    background: `conic-gradient(#007bff ${percent}%, #e9ecef 0)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center'
+  }}>
+    <div style={{
+      width: 90, height: 90, borderRadius: '50%',
+      background: 'white', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      fontWeight: 'bold'
+    }}>
       {percent}%
     </div>
   </div>
