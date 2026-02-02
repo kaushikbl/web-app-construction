@@ -6,7 +6,7 @@ const API = '/api';
 
 /* ===== PROJECT CONFIG ===== */
 const PROJECT_BUDGET = 11200000;
-const PROJECT_DURATION_MONTHS = 12;
+const PROJECT_DURATION_MONTHS = 16;
 const MONTH_BUDGET = Math.round(PROJECT_BUDGET / PROJECT_DURATION_MONTHS);
 
 /* ===== ROLE CONFIG ===== */
@@ -284,32 +284,6 @@ function App() {
         ))}
       </select>
 
-      {/* ===== ADD / EDIT (ADMIN ONLY) ===== */}
-      {isAdmin && (
-        <div style={{ ...card, marginTop: 20 }}>
-          <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-          <div className="form-row">
-            <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}>
-              <option value="">Category</option>
-              {Object.entries(categories).map(([g, items]) => (
-                <optgroup key={g} label={g}>
-                  {items.map((c) => (
-                    <option key={c._id} value={c.name} data-group={g}>{c.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-            <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          </div>
-          <div className="form-row">
-            <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
-            <button className="btn-add" onClick={submit}>{editing ? 'Update' : 'Add'}</button>
-          </div>
-        </div>
-      )}
-
       {/* ===== CATEGORY WISE ===== */}
       <h3 style={{ marginTop: 30 }}>Category Wise Expenses</h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -326,12 +300,18 @@ function App() {
         ))}
       </div>
 
-      {/* ===== RECENT EXPENSES ===== */}
+      {/* ===== RECENT EXPENSES (CATEGORY GROUP SHOWN) ===== */}
       <h3 style={{ marginTop: 30 }}>Recent Expenses</h3>
       <table className="expense-table">
         <thead>
           <tr>
-            <th>Qty</th><th>Category</th><th>Amount</th><th>Date</th><th>Notes</th><th>Bill</th><th>Action</th>
+            <th>Qty</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Bill</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -340,13 +320,22 @@ function App() {
             return (
               <tr key={e._id}>
                 <td>{e.quantity}</td>
-                <td><strong>{e.category}</strong></td>
+                <td>
+                  <div style={muted}>
+                    {CATEGORY_ICONS[e.group] || '📦'} {e.group}
+                  </div>
+                  <strong>{e.category}</strong>
+                </td>
                 <td>₹{e.amount.toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || '—'}</td>
                 <td>
                   {imgUrl ? (
-                    <img src={imgUrl} className="bill-thumb" onClick={() => setPreviewImage(imgUrl)} />
+                    <img
+                      src={imgUrl}
+                      className="bill-thumb"
+                      onClick={() => setPreviewImage(imgUrl)}
+                    />
                   ) : '—'}
                 </td>
                 <td>
