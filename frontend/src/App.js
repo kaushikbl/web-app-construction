@@ -9,6 +9,9 @@ const PROJECT_BUDGET = 11200000;
 const PROJECT_DURATION_MONTHS = 12;
 const MONTH_BUDGET = Math.round(PROJECT_BUDGET / PROJECT_DURATION_MONTHS);
 
+/* ===== ROLE CONFIG ===== */
+const ADMIN_USERS = ['kaushik', 'shruthi'];
+
 /* ===== CATEGORY ICONS ===== */
 const CATEGORY_ICONS = {
   'Foundation & Structure': '🏗️',
@@ -26,7 +29,7 @@ const CATEGORY_ICONS = {
 };
 
 function App() {
-  /* ===== LOGIN STATE ===== */
+  /* ===== LOGIN ===== */
   const [user, setUser] = useState(
     localStorage.getItem('userName')
       ? { name: localStorage.getItem('userName') }
@@ -34,7 +37,10 @@ function App() {
   );
   const [loginName, setLoginName] = useState('');
 
-  /* ===== DATA STATE ===== */
+  const isAdmin =
+    user && ADMIN_USERS.includes(user.name.toLowerCase());
+
+  /* ===== DATA ===== */
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -50,7 +56,7 @@ function App() {
     Image: null,
   });
 
-  /* ===== LOAD DATA ===== */
+  /* ===== LOAD ===== */
   useEffect(() => {
     if (user) {
       loadCategories();
@@ -71,12 +77,11 @@ function App() {
   /* ===== LOGIN HANDLERS ===== */
   const handleLogin = () => {
     if (!loginName.trim()) {
-      alert('Please enter your name');
+      alert('Enter name');
       return;
     }
     localStorage.setItem('userName', loginName);
     setUser({ name: loginName });
-    setLoginName('');
   };
 
   const handleLogout = () => {
@@ -84,7 +89,7 @@ function App() {
     setUser(null);
   };
 
-  /* ===== IMAGE PATH FIX ===== */
+  /* ===== IMAGE FIX ===== */
   const getImageUrl = (img) => {
     if (!img) return null;
     if (img.includes('/uploads/')) {
@@ -93,10 +98,12 @@ function App() {
     return img;
   };
 
-  /* ===== ADD / UPDATE ===== */
+  /* ===== ADD / UPDATE (ADMIN ONLY) ===== */
   const submit = async () => {
+    if (!isAdmin) return;
+
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Please fill required fields');
+      alert('Fill required fields');
       return;
     }
 
@@ -122,6 +129,7 @@ function App() {
   };
 
   const editExpense = (e) => {
+    if (!isAdmin) return;
     setEditing(e);
     setForm({
       quantity: e.quantity,
@@ -131,7 +139,13 @@ function App() {
       notes: e.notes || '',
       Image: null,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const remove = async (id) => {
+    if (!isAdmin) return;
+    if (!window.confirm('Delete expense?')) return;
+    await axios.delete(`${API}/expenses/${id}`);
+    setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
   const resetForm = () => {
@@ -143,17 +157,9 @@ function App() {
       notes: '',
       Image: null,
     });
-    const f = document.querySelector('input[type="file"]');
-    if (f) f.value = '';
   };
 
-  const remove = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
-    await axios.delete(`${API}/expenses/${id}`);
-    setExpenses((p) => p.filter((e) => e._id !== id));
-  };
-
-  /* ===== MONTHS ===== */
+  /* ===== MONTH FILTER ===== */
   const year = new Date().getFullYear();
   const months = Array.from({ length: 12 }, (_, i) =>
     `${year}-${String(i + 1).padStart(2, '0')}`
@@ -196,32 +202,19 @@ function App() {
       ? 'At Risk'
       : 'On Track';
 
-  const categoryTotals = filteredExpenses.reduce((acc, e) => {
-    acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
-    return acc;
-  }, {});
-
-  const topDrivers = Object.entries(categoryTotals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-
-  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
-
-  /* ===== LOGIN SCREEN ===== */
+  /* ===== LOGIN PAGE ===== */
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: 400, marginTop: 100 }}>
+      <div className="container" style={{ maxWidth: 400, marginTop: 120 }}>
         <div style={card}>
-          <h2>👋 Welcome</h2>
-          <p style={muted}>Enter your name to continue</p>
+          <h2>Login</h2>
           <input
-            placeholder="Your Name"
+            placeholder="Enter name"
             value={loginName}
             onChange={(e) => setLoginName(e.target.value)}
-            style={{ width: '100%', marginBottom: 10 }}
           />
-          <button className="btn-add" style={{ width: '100%' }} onClick={handleLogin}>
-            Login
+          <button className="btn-add" onClick={handleLogin} style={{ width: '100%', marginTop: 10 }}>
+            Continue
           </button>
         </div>
       </div>
@@ -231,15 +224,16 @@ function App() {
   /* ===== DASHBOARD ===== */
   return (
     <div className="container">
-      <h1>Expense-Dashboard</h1>
+      <h1>Expense Dashboard</h1>
 
-      {/* ===== SUMMARY ROW ===== */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
-          <h3>Good Day 👋</h3>
           <strong>{user.name}</strong>
           <div style={muted}>Residential Building (G+3)</div>
-          <button className="btn-delete" style={{ marginTop: 10 }} onClick={handleLogout}>
+          <div style={muted}>
+            Access: {isAdmin ? 'Admin' : 'Read Only'}
+          </div>
+          <button className="btn-delete" onClick={handleLogout} style={{ marginTop: 10 }}>
             Logout
           </button>
         </div>
@@ -253,75 +247,40 @@ function App() {
         </div>
 
         <div style={card}>
-          <h4>🏗 Project Status</h4>
-          <div>Total Budget: ₹{PROJECT_BUDGET.toLocaleString()}</div>
+          <h4>Project Status</h4>
           <div>Spent: ₹{totalProjectSpent.toLocaleString()}</div>
           <div>Used: {projectPercent}%</div>
-          <div
-            style={{
-              fontWeight: 600,
-              color:
-                projectStatus === 'Over Budget'
-                  ? '#dc3545'
-                  : projectStatus === 'At Risk'
-                  ? '#ffc107'
-                  : '#28a745',
-            }}
-          >
+          <strong style={{ color: projectStatus === 'Over Budget' ? '#dc3545' : projectStatus === 'At Risk' ? '#ffc107' : '#28a745' }}>
             {projectStatus}
+          </strong>
+        </div>
+      </div>
+
+      {/* ===== ADD FORM (ADMIN ONLY) ===== */}
+      {isAdmin && (
+        <div style={{ ...card, marginBottom: 20 }}>
+          <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
+          <div className="form-row">
+            <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}>
+              <option value="">Category</option>
+              {Object.entries(categories).map(([g, items]) => (
+                <optgroup key={g} label={g}>
+                  {items.map((c) => (
+                    <option key={c._id} value={c.name} data-group={g}>{c.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+            <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
+            <button className="btn-add" onClick={submit}>{editing ? 'Update' : 'Add'}</button>
           </div>
         </div>
-
-        <div style={card}>
-          <h4>🔥 Top Cost Drivers</h4>
-          {topDrivers.length === 0 && <div style={muted}>No data</div>}
-          {topDrivers.map(([g, amt]) => (
-            <div key={g}>
-              {CATEGORY_ICONS[g] || '📦'} {g}
-              <div style={muted}>₹{amt.toLocaleString()}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ===== MONTH SELECT ===== */}
-      <label style={muted}>Month</label>
-      <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-        <option value="">All Months</option>
-        {months.map((m) => (
-          <option key={m} value={m}>
-            {new Date(m + '-01').toLocaleString('default', {
-              month: 'short',
-              year: 'numeric',
-            })}
-          </option>
-        ))}
-      </select>
-
-      {/* ===== ADD / EDIT ===== */}
-      <div style={{ ...card, marginBottom: 25 }}>
-        <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
-        <div className="form-row">
-          <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group })}>
-            <option value="">Select Category</option>
-            {Object.entries(categories).map(([g, items]) => (
-              <optgroup key={g} label={g}>
-                {items.map((c) => (
-                  <option key={c._id} value={c.name} data-group={g}>{c.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-          <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        </div>
-        <div className="form-row">
-          <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
-          <button className="btn-add" onClick={submit}>{editing ? 'Update' : 'Add'}</button>
-          {editing && <button className="btn-delete" onClick={() => { setEditing(null); resetForm(); }}>Cancel</button>}
-        </div>
-      </div>
+      )}
 
       {/* ===== TABLE ===== */}
       <table className="expense-table">
@@ -336,14 +295,20 @@ function App() {
             return (
               <tr key={e._id}>
                 <td>{e.quantity}</td>
-                <td><div style={muted}>{e.group}</div><strong>{e.category}</strong></td>
+                <td><strong>{e.category}</strong></td>
                 <td>₹{e.amount.toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || '—'}</td>
                 <td>{imgUrl ? <img src={imgUrl} className="bill-thumb" onClick={() => setPreviewImage(imgUrl)} /> : '—'}</td>
                 <td>
-                  <button className="btn-add" onClick={() => editExpense(e)}>Edit</button>{' '}
-                  <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
+                  {isAdmin ? (
+                    <>
+                      <button className="btn-add" onClick={() => editExpense(e)}>Edit</button>{' '}
+                      <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
+                    </>
+                  ) : (
+                    <span style={muted}>View only</span>
+                  )}
                 </td>
               </tr>
             );
@@ -353,14 +318,14 @@ function App() {
 
       {previewImage && (
         <div style={overlay} onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} style={previewImg} onClick={(e) => e.stopPropagation()} />
+          <img src={previewImage} style={previewImg} />
         </div>
       )}
     </div>
   );
 }
 
-/* ===== SMALL COMPONENTS ===== */
+/* ===== COMPONENTS ===== */
 const CircularGauge = ({ percent }) => (
   <div style={{
     width: 120, height: 120, borderRadius: '50%',
@@ -369,8 +334,8 @@ const CircularGauge = ({ percent }) => (
   }}>
     <div style={{
       width: 90, height: 90, borderRadius: '50%',
-      background: 'white', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
+      background: 'white',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontWeight: 'bold'
     }}>
       {percent}%
