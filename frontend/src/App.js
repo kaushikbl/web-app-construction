@@ -74,12 +74,9 @@ function App() {
     setExpenses(res.data);
   };
 
-  /* ===== LOGIN HANDLERS ===== */
+  /* ===== LOGIN ===== */
   const handleLogin = () => {
-    if (!loginName.trim()) {
-      alert('Enter name');
-      return;
-    }
+    if (!loginName.trim()) return alert('Enter name');
     localStorage.setItem('userName', loginName);
     setUser({ name: loginName });
   };
@@ -98,7 +95,7 @@ function App() {
     return img;
   };
 
-  /* ===== ADD / UPDATE (ADMIN ONLY) ===== */
+  /* ===== ADD / UPDATE ===== */
   const submit = async () => {
     if (!isAdmin) return;
 
@@ -108,12 +105,7 @@ function App() {
     }
 
     const fd = new FormData();
-    fd.append('quantity', form.quantity);
-    fd.append('category', form.category);
-    fd.append('group', form.group);
-    fd.append('amount', form.amount);
-    fd.append('notes', form.notes || '');
-    if (form.Image) fd.append('Image', form.Image);
+    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
     if (editing) {
       const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
@@ -139,6 +131,7 @@ function App() {
       notes: e.notes || '',
       Image: null,
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const remove = async (id) => {
@@ -159,11 +152,13 @@ function App() {
     });
   };
 
-  /* ===== MONTH FILTER ===== */
+  /* ===== MONTHS ===== */
   const year = new Date().getFullYear();
   const months = Array.from({ length: 12 }, (_, i) =>
     `${year}-${String(i + 1).padStart(2, '0')}`
   );
+
+  const currentMonth = `${year}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
   const filteredExpenses = selectedMonth
     ? expenses.filter((e) => {
@@ -202,6 +197,18 @@ function App() {
       ? 'At Risk'
       : 'On Track';
 
+  /* ===== CATEGORY TOTALS (MONTH BASED) ===== */
+  const categoryTotals = filteredExpenses.reduce((acc, e) => {
+    acc[e.group] = (acc[e.group] || 0) + Number(e.amount || 0);
+    return acc;
+  }, {});
+
+  const topDrivers = Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
+
   /* ===== LOGIN PAGE ===== */
   if (!user) {
     return (
@@ -213,7 +220,7 @@ function App() {
             value={loginName}
             onChange={(e) => setLoginName(e.target.value)}
           />
-          <button className="btn-add" onClick={handleLogin} style={{ width: '100%', marginTop: 10 }}>
+          <button className="btn-add" style={{ width: '100%', marginTop: 10 }} onClick={handleLogin}>
             Continue
           </button>
         </div>
@@ -221,18 +228,17 @@ function App() {
     );
   }
 
-  /* ===== DASHBOARD ===== */
   return (
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      {/* ===== SUMMARY ROW ===== */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={card}>
+          <h3>Good Day 👋</h3>
           <strong>{user.name}</strong>
           <div style={muted}>Residential Building (G+3)</div>
-          <div style={muted}>
-            Access: {isAdmin ? 'Admin' : 'Read Only'}
-          </div>
+          <div style={muted}>Access: {isAdmin ? 'Admin' : 'Read Only'}</div>
           <button className="btn-delete" onClick={handleLogout} style={{ marginTop: 10 }}>
             Logout
           </button>
@@ -247,18 +253,40 @@ function App() {
         </div>
 
         <div style={card}>
-          <h4>Project Status</h4>
+          <h4>🏗 Project Status</h4>
           <div>Spent: ₹{totalProjectSpent.toLocaleString()}</div>
           <div>Used: {projectPercent}%</div>
           <strong style={{ color: projectStatus === 'Over Budget' ? '#dc3545' : projectStatus === 'At Risk' ? '#ffc107' : '#28a745' }}>
             {projectStatus}
           </strong>
         </div>
+
+        <div style={card}>
+          <h4>🔥 Top Cost Drivers</h4>
+          {topDrivers.length === 0 && <div style={muted}>No data</div>}
+          {topDrivers.map(([g, amt]) => (
+            <div key={g}>
+              {CATEGORY_ICONS[g] || '📦'} {g}
+              <div style={muted}>₹{amt.toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ===== ADD FORM (ADMIN ONLY) ===== */}
+      {/* ===== MONTH SELECT ===== */}
+      <label style={muted}>Month</label>
+      <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+        <option value="">All Months</option>
+        {months.map((m) => (
+          <option key={m} value={m} style={m === currentMonth ? { fontWeight: 'bold' } : {}}>
+            {new Date(m + '-01').toLocaleString('default', { month: 'short', year: 'numeric' })}
+          </option>
+        ))}
+      </select>
+
+      {/* ===== ADD / EDIT (ADMIN ONLY) ===== */}
       {isAdmin && (
-        <div style={{ ...card, marginBottom: 20 }}>
+        <div style={{ ...card, marginTop: 20 }}>
           <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
           <div className="form-row">
             <input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
@@ -282,7 +310,24 @@ function App() {
         </div>
       )}
 
-      {/* ===== TABLE ===== */}
+      {/* ===== CATEGORY WISE ===== */}
+      <h3 style={{ marginTop: 30 }}>Category Wise Expenses</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {Object.entries(categoryTotals).map(([g, amt]) => (
+          <div key={g} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>{CATEGORY_ICONS[g] || '📦'} {g}</span>
+              <strong>₹{amt.toLocaleString()}</strong>
+            </div>
+            <div style={progressBg}>
+              <div style={{ ...progressBar, width: `${(amt / maxCategory) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ===== RECENT EXPENSES ===== */}
+      <h3 style={{ marginTop: 30 }}>Recent Expenses</h3>
       <table className="expense-table">
         <thead>
           <tr>
@@ -290,7 +335,7 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {filteredExpenses.map((e) => {
+          {filteredExpenses.slice(0, 6).map((e) => {
             const imgUrl = getImageUrl(e.Image);
             return (
               <tr key={e._id}>
@@ -299,7 +344,11 @@ function App() {
                 <td>₹{e.amount.toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
                 <td>{e.notes || '—'}</td>
-                <td>{imgUrl ? <img src={imgUrl} className="bill-thumb" onClick={() => setPreviewImage(imgUrl)} /> : '—'}</td>
+                <td>
+                  {imgUrl ? (
+                    <img src={imgUrl} className="bill-thumb" onClick={() => setPreviewImage(imgUrl)} />
+                  ) : '—'}
+                </td>
                 <td>
                   {isAdmin ? (
                     <>
@@ -334,8 +383,8 @@ const CircularGauge = ({ percent }) => (
   }}>
     <div style={{
       width: 90, height: 90, borderRadius: '50%',
-      background: 'white',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'white', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
       fontWeight: 'bold'
     }}>
       {percent}%
@@ -345,6 +394,8 @@ const CircularGauge = ({ percent }) => (
 
 const card = { background: 'white', padding: 15, borderRadius: 10 };
 const muted = { fontSize: 12, color: '#777' };
+const progressBg = { height: 6, background: '#e9ecef', borderRadius: 4, marginTop: 6 };
+const progressBar = { height: '100%', background: '#28a745', borderRadius: 4 };
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 };
 const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
 
