@@ -183,14 +183,15 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Construction Expense Dashboard</h1>
+      <h1>Expense-Dashboard</h1>
 
       {/* ===== SUMMARY ROW ===== */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
-          <h3>Good Morning 👋</h3>
+          <h3>Good Day 👋</h3>
           <strong>Kaushik</strong>
           <div style={muted}>Track your construction expenses</div>
+           <div style={muted}>Residential Building (G+3)</div>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
@@ -234,7 +235,7 @@ function App() {
         {months.map((m) => (
           <option key={m} value={m}>
             {new Date(m + '-01').toLocaleString('default', {
-              month: 'long',
+              month: 'short',
               year: 'numeric',
             })}
           </option>
