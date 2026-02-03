@@ -43,7 +43,8 @@ function App() {
   useEffect(() => {
     loadCategories(); loadExpenses();
     const now = new Date();
-    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+    // Defaulting to 2026 for the current month view
+    setSelectedMonth(`2026-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, []);
 
   const loadCategories = async () => {
@@ -77,7 +78,7 @@ function App() {
         const res = await axios.post(`${API}/expenses`, fd);
         setExpenses(p => [res.data, ...p]);
       }
-      resetForm();
+      resetForm(); // Form returns to "Add" state
     } catch (err) {
       alert("Error saving expense");
     }
@@ -94,6 +95,7 @@ function App() {
     return img.includes('/uploads/') ? img.substring(img.indexOf('/uploads/')) : img;
   };
 
+  /* ===== COMPUTED METRICS ===== */
   const totalProjectSpent = useMemo(() => expenses.reduce((s, e) => s + Number(e.amount || 0), 0), [expenses]);
   
   const filteredExpenses = useMemo(() => {
@@ -129,14 +131,14 @@ function App() {
   return (
     <div style={mainBg}>
       <div className="container">
-        {/* PROGRESS BOX */}
+        {/* TOTAL BUDGET BAR */}
         <div style={{ ...card, marginBottom: 20, borderTop: '4px solid #28a745' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <strong>Total Project Budget Usage</strong>
-            <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
+            <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}% Spent</strong>
           </div>
           <div style={progressBg}><div style={{ ...progressBar, width: `${(totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100}%` }} /></div>
-          <div style={{ ...muted, marginTop: 5 }}>Spent {formatINR(totalProjectSpent)} of {formatINR(PROJECT_TOTAL_BUDGET)}</div>
+          <div style={{ ...muted, marginTop: 5 }}>Overall: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
         {/* HEADER */}
@@ -148,26 +150,26 @@ function App() {
           </div>
         </div>
 
-        {/* FILTERS */}
+        {/* FILTERS (Updated to 2026) */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 25 }}>
           <div style={{ ...card, flex: 1, textAlign: 'center' }}>
-            <div style={muted}>Monthly Gauge</div>
+            <div style={muted}>Monthly Budget Status</div>
             <CircularGauge percent={Math.min(Math.round((monthlySpent / MONTH_BUDGET) * 100), 100)} />
             <div style={{ fontWeight: 'bold' }}>{formatINR(monthlySpent)}</div>
           </div>
           <div style={{ ...card, flex: 2 }}>
-            <h3>View Filters</h3>
+            <h3>View Filters (2026)</h3>
             <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
               <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ flex: 1 }}>
                 {Array.from({ length: 12 }, (_, i) => {
-                  const d = new Date(2025, i);
+                  const d = new Date(2026, i);
                   const val = `${d.getFullYear()}-${String(i + 1).padStart(2, '0')}`;
                   return <option key={val} value={val}>{d.toLocaleString('default', { month: 'short', year: 'numeric' })}</option>;
                 })}
               </select>
-              <input style={searchInput} placeholder="🔍 Search vendor, material..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <input style={searchInput} placeholder="🔍 Search vendor, material, note..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-            <button onClick={() => {setSearchTerm(''); setSelectedMonth('');}} style={clearBtn}>Reset Filters</button>
+            <button onClick={() => {setSearchTerm(''); setSelectedMonth('');}} style={clearBtn}>Clear Filters</button>
           </div>
         </div>
 
@@ -183,7 +185,7 @@ function App() {
                 <div style={{ display: 'flex', gap: 5 }}>
                   <input placeholder="Qty" style={{ width: '60px' }} value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
                   <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-                    <option>Units</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Load</option>
+                    <option>Units</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Load</option><option>Sqft</option>
                   </select>
                 </div>
               </div>
@@ -196,7 +198,7 @@ function App() {
                 </select>
               </div>
               <div style={inputGroup}><label style={labelStyle}>Vendor</label>
-                <input placeholder="Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
+                <input placeholder="Shop/Vendor Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
             </div>
             <div className="form-row" style={{ marginTop: 15 }}>
@@ -204,21 +206,21 @@ function App() {
                 <input type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
               </div>
               <div style={{ ...inputGroup, flex: 2 }}><label style={labelStyle}>Notes</label>
-                <input placeholder="Payment details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                <input placeholder="Bill # or payment mode details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
               </div>
-              <div style={inputGroup}><label style={labelStyle}>Bill Image</label>
+              <div style={inputGroup}><label style={labelStyle}>Attach Bill</label>
                 <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} />
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <button className="btn-add" style={{ height: '40px' }} onClick={submit}>{editing ? 'Update' : 'Save Entry'}</button>
+                <button className="btn-add" style={{ height: '40px' }} onClick={submit}>{editing ? 'Update' : 'Add Entry'}</button>
                 {editing && <button onClick={resetForm} style={{ ...clearBtn, height: '40px', marginLeft: 10 }}>Cancel</button>}
               </div>
             </div>
           </div>
         )}
 
-        {/* SECTION: CATEGORY WISE EXPENSE */}
-        <h3 style={{ marginBottom: 15 }}>Category Wise Expense</h3>
+        {/* CATEGORY WISE EXPENSES SECTION */}
+        <h3 style={{ marginBottom: 15 }}>Category Wise Expenses</h3>
         <div style={grid}>
           {Object.entries(categoryTotals).map(([g, amt]) => (
             <div key={g} style={{ ...card, cursor: 'pointer', border: searchTerm === g ? '2px solid #28a745' : '1px solid transparent' }} onClick={() => setSearchTerm(g)}>
@@ -231,19 +233,21 @@ function App() {
           ))}
         </div>
 
-        {/* RECENT LOG */}
+        {/* RECENT EXPENSE LOG TABLE */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 15 }}>
             <h3>Recent Expense Log</h3>
-            <span style={{ ...roleBadge, background: '#6c757d' }}>{filteredExpenses.length} Records</span>
+            <span style={{ ...roleBadge, background: '#6c757d' }}>{filteredExpenses.length} Records Found</span>
         </div>
         
         <table className="expense-table">
           <thead>
             <tr>
               <th>Date</th>
-              <th>Material / Vendor</th>
+              <th>Category</th>
+              <th>Vendor</th>
               <th>Qty</th>
               <th>Amount</th>
+              <th>Notes</th>
               <th>Bill</th>
               <th>Action</th>
             </tr>
@@ -254,20 +258,37 @@ function App() {
               return (
                 <tr key={e._id}>
                   <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
-                  <td><strong>{e.category}</strong><div style={{ fontSize: 11, color: '#28a745' }}>{e.vendor}</div></td>
+                  
+                  {/* TWO-LINE CATEGORY STYLING (MATCHES IMAGE) */}
+                  <td style={{ minWidth: '180px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>
+                      {e.group || 'General'} 
+                    </div>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>
+                      {e.category}
+                    </div>
+                  </td>
+
+                  <td style={{ color: '#28a745', fontWeight: '500' }}>{e.vendor || '—'}</td>
                   <td>{e.quantity} {e.unit}</td>
                   <td style={{ fontWeight: 'bold' }}>{formatINR(e.amount)}</td>
+                  <td style={muted}>{e.notes || '—'}</td>
                   <td>
                     {img ? (
-                      <img src={img} className="bill-thumb" alt="bill" onClick={() => setPreviewImage(img)} style={{ width: 30, height: 30, objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }} />
+                      <img src={img} className="bill-thumb" alt="bill" onClick={() => setPreviewImage(img)} 
+                           style={{ width: 30, height: 30, objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }} />
                     ) : '—'}
                   </td>
                   <td>
                     {canEdit && (
-                      <>
-                        <button className="btn-add" onClick={() => {setEditing(e); setForm({ ...e, date: e.date.split('T')[0], Image: null }); window.scrollTo({top: 0, behavior: 'smooth'})}}>Edit</button>{' '}
-                        <button className="btn-delete" onClick={() => remove(e._id)}>Del</button>
-                      </>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button className="btn-add" onClick={() => {
+                            setEditing(e); 
+                            setForm({ ...e, date: e.date.split('T')[0], Image: null }); 
+                            window.scrollTo({top: 0, behavior: 'smooth'});
+                        }}>Edit</button>
+                        <button className="btn-delete" onClick={() => remove(e._id)}>Delete</button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -276,9 +297,8 @@ function App() {
           </tbody>
         </table>
         
-        {/* TABLE SUMMARY BAR */}
         <div style={{ marginTop: 10, padding: 15, background: '#fff', borderRadius: 8, textAlign: 'right', border: '1px solid #eee' }}>
-            <span style={muted}>Total for current view: </span>
+            <span style={muted}>Total amount for current view: </span>
             <strong style={{ fontSize: 18, color: '#2c3e50', marginLeft: 10 }}>{formatINR(monthlySpent)}</strong>
         </div>
 
@@ -293,7 +313,7 @@ function App() {
   );
 }
 
-/* STYLES */
+/* ===== STYLES ===== */
 const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
 const loginOverlay = { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2c3e50' };
 const loginCard = { background: 'white', padding: '40px', borderRadius: '15px', textAlign: 'center', width: '90%', maxWidth: '400px' };
