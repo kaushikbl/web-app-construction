@@ -29,6 +29,7 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [editing, setEditing] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewImage, setPreviewImage] = useState(null);
 
   const getToday = () => new Date().toISOString().split('T')[0];
 
@@ -55,23 +56,43 @@ function App() {
     setExpenses(res.data);
   };
 
+  const resetForm = () => {
+    setEditing(null);
+    setForm({ 
+      date: getToday(), quantity: '', unit: 'Units', category: '', 
+      group: '', amount: '', notes: '', vendor: '', Image: null 
+    });
+  };
+
   const submit = async () => {
     if (!canEdit) return alert('Read-only access');
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
 
-    if (editing) {
-      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
-      setExpenses(p => p.map(e => e._id === editing._id ? res.data : e));
-      setEditing(null);
-    } else {
-      const res = await axios.post(`${API}/expenses`, fd);
-      setExpenses(p => [res.data, ...p]);
+    try {
+      if (editing) {
+        const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
+        setExpenses(p => p.map(e => e._id === editing._id ? res.data : e));
+      } else {
+        const res = await axios.post(`${API}/expenses`, fd);
+        setExpenses(p => [res.data, ...p]);
+      }
+      resetForm();
+    } catch (err) {
+      alert("Error saving expense");
     }
-    resetForm();
   };
 
-  const resetForm = () => setForm({ date: getToday(), quantity: '', unit: 'Units', category: '', group: '', amount: '', notes: '', vendor: '', Image: null });
+  const remove = async (id) => {
+    if (!canEdit || !window.confirm('Delete this expense?')) return;
+    await axios.delete(`${API}/expenses/${id}`);
+    setExpenses(p => p.filter(e => e._id !== id));
+  };
+
+  const getImageUrl = (img) => {
+    if (!img) return null;
+    return img.includes('/uploads/') ? img.substring(img.indexOf('/uploads/')) : img;
+  };
 
   const totalProjectSpent = useMemo(() => expenses.reduce((s, e) => s + Number(e.amount || 0), 0), [expenses]);
   
@@ -108,14 +129,14 @@ function App() {
   return (
     <div style={mainBg}>
       <div className="container">
-        {/* PROGRESS: POINT 1 */}
+        {/* PROGRESS BOX */}
         <div style={{ ...card, marginBottom: 20, borderTop: '4px solid #28a745' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <strong>Total Project Budget Status</strong>
-            <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}% Spent</strong>
+            <strong>Total Project Budget Usage</strong>
+            <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
           </div>
           <div style={progressBg}><div style={{ ...progressBar, width: `${(totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100}%` }} /></div>
-          <div style={{ ...muted, marginTop: 5 }}>Overall: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
+          <div style={{ ...muted, marginTop: 5 }}>Spent {formatINR(totalProjectSpent)} of {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
         {/* HEADER */}
@@ -135,7 +156,7 @@ function App() {
             <div style={{ fontWeight: 'bold' }}>{formatINR(monthlySpent)}</div>
           </div>
           <div style={{ ...card, flex: 2 }}>
-            <h3>Project Filters</h3>
+            <h3>View Filters</h3>
             <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
               <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ flex: 1 }}>
                 {Array.from({ length: 12 }, (_, i) => {
@@ -144,32 +165,29 @@ function App() {
                   return <option key={val} value={val}>{d.toLocaleString('default', { month: 'short', year: 'numeric' })}</option>;
                 })}
               </select>
-              <input style={searchInput} placeholder="🔍 Search vendor, material, note..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <input style={searchInput} placeholder="🔍 Search vendor, material..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-            <button onClick={() => {setSearchTerm(''); setSelectedMonth('');}} style={clearBtn}>Reset All View</button>
+            <button onClick={() => {setSearchTerm(''); setSelectedMonth('');}} style={clearBtn}>Reset Filters</button>
           </div>
         </div>
 
-        {/* FORM: POINT 2 & 3 & DATE */}
+        {/* ADD/EDIT FORM */}
         {canEdit && (
           <div style={{ ...card, marginBottom: 25, background: '#f8f9fa' }}>
-            <h3 style={{ marginBottom: 15 }}>{editing ? '📝 Edit Transaction' : '➕ Add Construction Expense'}</h3>
+            <h3>{editing ? '📝 Edit Transaction' : '➕ Add Construction Expense'}</h3>
             <div className="form-row">
-              <div style={inputGroup}>
-                <label style={labelStyle}>Date</label>
+              <div style={inputGroup}><label style={labelStyle}>Date</label>
                 <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
               </div>
-              <div style={inputGroup}>
-                <label style={labelStyle}>Quantity</label>
+              <div style={inputGroup}><label style={labelStyle}>Qty & Unit</label>
                 <div style={{ display: 'flex', gap: 5 }}>
                   <input placeholder="Qty" style={{ width: '60px' }} value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
                   <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-                    <option>Units</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Load</option><option>Sqft</option>
+                    <option>Units</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Load</option>
                   </select>
                 </div>
               </div>
-              <div style={inputGroup}>
-                <label style={labelStyle}>Category</label>
+              <div style={inputGroup}><label style={labelStyle}>Category</label>
                 <select value={form.category} onChange={e => setForm({...form, category: e.target.value, group: e.target.selectedOptions[0].dataset.group})}>
                   <option value="">Select Material</option>
                   {Object.entries(categories).map(([g, items]) => (
@@ -177,19 +195,19 @@ function App() {
                   ))}
                 </select>
               </div>
-              <div style={inputGroup}>
-                <label style={labelStyle}>Vendor (Shop)</label>
-                <input placeholder="Name of Supplier" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
+              <div style={inputGroup}><label style={labelStyle}>Vendor</label>
+                <input placeholder="Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
             </div>
             <div className="form-row" style={{ marginTop: 15 }}>
-              <div style={{ ...inputGroup, flex: 1 }}>
-                <label style={labelStyle}>Total Amount</label>
+              <div style={{ ...inputGroup, flex: 1 }}><label style={labelStyle}>Amount</label>
                 <input type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
               </div>
-              <div style={{ ...inputGroup, flex: 2 }}>
-                <label style={labelStyle}>Notes</label>
-                <input placeholder="Bill details or payment mode" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+              <div style={{ ...inputGroup, flex: 2 }}><label style={labelStyle}>Notes</label>
+                <input placeholder="Payment details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+              </div>
+              <div style={inputGroup}><label style={labelStyle}>Bill Image</label>
+                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} />
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                 <button className="btn-add" style={{ height: '40px' }} onClick={submit}>{editing ? 'Update' : 'Save Entry'}</button>
@@ -199,7 +217,8 @@ function App() {
           </div>
         )}
 
-        {/* INTERACTIVE CARDS: POINT 4 */}
+        {/* SECTION: CATEGORY WISE EXPENSE */}
+        <h3 style={{ marginBottom: 15 }}>Category Wise Expense</h3>
         <div style={grid}>
           {Object.entries(categoryTotals).map(([g, amt]) => (
             <div key={g} style={{ ...card, cursor: 'pointer', border: searchTerm === g ? '2px solid #28a745' : '1px solid transparent' }} onClick={() => setSearchTerm(g)}>
@@ -212,8 +231,12 @@ function App() {
           ))}
         </div>
 
-        {/* TABLE */}
-        <h3 style={{ marginTop: 30 }}>Expense Log ({filteredExpenses.length})</h3>
+        {/* RECENT LOG */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 15 }}>
+            <h3>Recent Expense Log</h3>
+            <span style={{ ...roleBadge, background: '#6c757d' }}>{filteredExpenses.length} Records</span>
+        </div>
+        
         <table className="expense-table">
           <thead>
             <tr>
@@ -221,33 +244,57 @@ function App() {
               <th>Material / Vendor</th>
               <th>Qty</th>
               <th>Amount</th>
+              <th>Bill</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {filteredExpenses.map(e => (
-              <tr key={e._id}>
-                <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
-                <td>
-                  <strong>{e.category}</strong>
-                  <div style={{ fontSize: 11, color: '#28a745' }}>{e.vendor || 'Unknown'}</div>
-                </td>
-                <td>{e.quantity} {e.unit}</td>
-                <td style={{ fontWeight: 'bold' }}>{formatINR(e.amount)}</td>
-                <td>
-                  {canEdit && <button className="btn-add" onClick={() => {setEditing(e); setForm({ ...e, Image: null }); window.scrollTo(0,0)}}>Edit</button>}
-                </td>
-              </tr>
-            ))}
+            {filteredExpenses.map(e => {
+              const img = getImageUrl(e.Image);
+              return (
+                <tr key={e._id}>
+                  <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
+                  <td><strong>{e.category}</strong><div style={{ fontSize: 11, color: '#28a745' }}>{e.vendor}</div></td>
+                  <td>{e.quantity} {e.unit}</td>
+                  <td style={{ fontWeight: 'bold' }}>{formatINR(e.amount)}</td>
+                  <td>
+                    {img ? (
+                      <img src={img} className="bill-thumb" alt="bill" onClick={() => setPreviewImage(img)} style={{ width: 30, height: 30, objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }} />
+                    ) : '—'}
+                  </td>
+                  <td>
+                    {canEdit && (
+                      <>
+                        <button className="btn-add" onClick={() => {setEditing(e); setForm({ ...e, date: e.date.split('T')[0], Image: null }); window.scrollTo({top: 0, behavior: 'smooth'})}}>Edit</button>{' '}
+                        <button className="btn-delete" onClick={() => remove(e._id)}>Del</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        
+        {/* TABLE SUMMARY BAR */}
+        <div style={{ marginTop: 10, padding: 15, background: '#fff', borderRadius: 8, textAlign: 'right', border: '1px solid #eee' }}>
+            <span style={muted}>Total for current view: </span>
+            <strong style={{ fontSize: 18, color: '#2c3e50', marginLeft: 10 }}>{formatINR(monthlySpent)}</strong>
+        </div>
+
+        {/* IMAGE PREVIEW OVERLAY */}
+        {previewImage && (
+          <div style={overlay} onClick={() => setPreviewImage(null)}>
+            <img src={previewImage} style={previewImg} alt="Preview" />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* STYLES (Keep existing or update as below) */
-const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '40px' };
+/* STYLES */
+const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
 const loginOverlay = { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2c3e50' };
 const loginCard = { background: 'white', padding: '40px', borderRadius: '15px', textAlign: 'center', width: '90%', maxWidth: '400px' };
 const loginInput = { width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '8px', border: '1px solid #ddd' };
@@ -262,10 +309,12 @@ const roleBadge = { padding: '2px 8px', borderRadius: 12, fontSize: 10, color: '
 const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 };
 const searchInput = { flex: 2, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' };
 const clearBtn = { marginTop: 10, padding: '5px 10px', fontSize: 11, background: '#eee', border: 'none', borderRadius: 4, cursor: 'pointer' };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
+const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
 
 const CircularGauge = ({ percent }) => (
-  <div style={{ width: 90, height: 90, borderRadius: '50%', background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '15px auto' }}>
-    <div style={{ width: 70, height: 70, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{percent}%</div>
+  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto' }}>
+    <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>{percent}%</div>
   </div>
 );
 
