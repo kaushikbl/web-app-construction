@@ -40,7 +40,7 @@ function App() {
   const [form, setForm] = useState({
     date: getToday(),
     quantity: '', 
-    unit: 'Units', // Default set to Units internally
+    unit: 'Units', 
     category: '', 
     group: '', 
     amount: '', 
@@ -218,7 +218,6 @@ function App() {
               
               <div style={inputGroup}><label style={labelStyle}>Unit</label>
                 <select style={formInput} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-                  {/* Default Units remains active but removed from selection list */}
                   <option value="Units" hidden>Units (Default)</option>
                   <option>Ton</option><option>Load</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Sqft</option>
                 </select>
@@ -281,6 +280,7 @@ function App() {
                 <th>Qty</th>
                 <th>Unit</th>
                 <th>Amount</th>
+                <th>Notes</th> {/* NEW COLUMN */}
                 <th>Bill</th>
                 <th>Action</th>
               </tr>
@@ -297,6 +297,7 @@ function App() {
                   <td>{e.quantity || '0'}</td>
                   <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
                   <td><strong>{formatINR(e.amount)}</strong></td>
+                  <td style={{ color: '#64748b', fontSize: '12px', maxWidth: '150px' }}>{e.notes || '—'}</td> {/* CLEAN NOTES STYLE */}
                   <td>
                       {getImageUrl(e.Image) ? 
                           <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 35, height: 35, cursor: 'pointer', borderRadius: 4, objectFit: 'cover' }} alt="bill" /> 
