@@ -6,7 +6,7 @@ const API = '/api';
 
 /* ===== PROJECT CONFIG ===== */
 const PROJECT_BUDGET = 11200000;
-const PROJECT_DURATION_MONTHS = 12;
+const PROJECT_DURATION_MONTHS = 16;
 const MONTH_BUDGET = Math.round(PROJECT_BUDGET / PROJECT_DURATION_MONTHS);
 
 /* ===== ROLE CONFIG ===== */
