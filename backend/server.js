@@ -11,25 +11,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ===== UPLOADS CONFIG ===== */
+/* ===== UPLOADS ===== */
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadDir));
 
-/* ===== DATABASE CONNECTION ===== */
+/* ===== DB ===== */
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/house_expenses')
   .then(() => console.log('✅ MongoDB connected'))
   .catch(console.error);
 
-/* ===== UPDATED SCHEMA (With Vendor & Unit) ===== */
+/* ===== MODEL ===== */
 const expenseSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
-  vendor: { type: String, default: 'N/A' }, // Added Vendor support
+  vendor: { type: String, default: '' },   // Added Vendor
   quantity: { type: Number, required: true },
-  unit: { type: String, default: '' },      // Added Unit as text (not restricted to Ton)
+  unit: { type: String, default: '' },     // Added Unit as String (not Ton only)
   category: { type: String, required: true },
   group: { type: String, required: true },
   amount: { type: Number, required: true },
@@ -39,7 +39,7 @@ const expenseSchema = new mongoose.Schema({
 
 const Expense = mongoose.model('Expense', expenseSchema);
 
-/* ===== MULTER STORAGE ===== */
+/* ===== MULTER ===== */
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, uploadDir),
   filename: (_, file, cb) =>
@@ -51,12 +51,7 @@ const upload = multer({ storage });
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
     const { date, vendor, quantity, unit, category, group, amount, notes } = req.body;
-
-    // Basic validation
-    if (!quantity || !category || !group || !amount) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
+    
     const imageUrl = req.file
       ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
       : null;
@@ -65,7 +60,7 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
       date: date || Date.now(),
       vendor: vendor || 'N/A',
       quantity: Number(quantity),
-      unit: unit || '', // Saves custom units like 'Bags', 'CFT', etc.
+      unit: unit || '',
       category,
       group,
       amount: Number(amount),
@@ -86,14 +81,11 @@ app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
     const exp = await Expense.findById(req.params.id);
     if (!exp) return res.sendStatus(404);
 
-    // Image cleanup logic
     if (req.file && exp.Image) {
-      const oldFileName = path.basename(exp.Image);
-      const oldPath = path.join(uploadDir, oldFileName);
+      const oldPath = path.join(uploadDir, path.basename(exp.Image));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    // Update fields
     exp.date = req.body.date || exp.date;
     exp.vendor = req.body.vendor || exp.vendor;
     exp.quantity = Number(req.body.quantity);
@@ -114,74 +106,49 @@ app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
   }
 });
 
-/* ===== GET ALL EXPENSES ===== */
 app.get('/api/expenses', async (_, res) => {
-  try {
-    const expenses = await Expense.find().sort({ date: -1 });
-    res.json(expenses);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const expenses = await Expense.find().sort({ date: -1 });
+  res.json(expenses);
 });
 
-/* ===== DELETE EXPENSE ===== */
 app.delete('/api/expenses/:id', async (req, res) => {
-  try {
-    const exp = await Expense.findById(req.params.id);
-    if (!exp) return res.sendStatus(404);
-
-    if (exp.Image) {
-      const imgPath = path.join(uploadDir, path.basename(exp.Image));
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    }
-
-    await exp.deleteOne();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  const exp = await Expense.findById(req.params.id);
+  if (!exp) return res.sendStatus(404);
+  if (exp.Image) {
+    const img = path.join(uploadDir, path.basename(exp.Image));
+    if (fs.existsSync(img)) fs.unlinkSync(img);
   }
+  await exp.deleteOne();
+  res.json({ success: true });
 });
 
-/* ===== CATEGORIES LOGIC ===== */
 app.get('/api/categories', async (_, res) => {
-  try {
-    const cats = await Category.find().sort({ name: 1 });
-    const grouped = {};
-    cats.forEach((c) => {
-      if (!grouped[c.group]) grouped[c.group] = [];
-      grouped[c.group].push(c);
-    });
-    res.json(grouped);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const cats = await Category.find().sort({ name: 1 });
+  const grouped = {};
+  cats.forEach((c) => {
+    if (!grouped[c.group]) grouped[c.group] = [];
+    grouped[c.group].push(c);
+  });
+  res.json(grouped);
 });
 
-/* ===== SEED DATA ===== */
+/* ===== FULL CONSTRUCTION SEED ===== */
 app.get('/api/seed/categories', async (_, res) => {
   const defaults = [
-    { name: 'Carpenter Charges', group: 'Labor & Services' },
-    { name: 'Mason Charges', group: 'Labor & Services' },
-    { name: 'Water Tank', group: 'Plumbing' },
-    { name: 'Steel (Fe 550)', group: 'Foundation & Structure' },
+    { name: 'Steel', group: 'Foundation & Structure' },
     { name: 'Cement', group: 'Foundation & Structure' },
     { name: 'M-Sand', group: 'Foundation & Structure' },
-    { name: 'Plan Sanction', group: 'Government Fees' },
-    { name: 'Architect Design', group: 'Architect Fees' },
-    { name: 'Drilling & Casing', group: 'Borewell' }
+    { name: 'Red Bricks', group: 'Masonry' },
+    { name: 'Labor Wages', group: 'Labor & Services' },
+    { name: 'Contractor Payment', group: 'Labor & Services' },
+    { name: 'Plan Sanction Fee', group: 'Government Fees' },
+    { name: 'Electrical Wiring', group: 'Electrical' },
+    { name: 'Architect Fee', group: 'Architect Fees' },
+    { name: 'Casing Pipe', group: 'Borewell' }
   ];
-
-  try {
-    await Category.deleteMany({}); // Clear existing to prevent duplicates
-    await Category.insertMany(defaults);
-    res.json({ message: 'Categories seeded successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  await Category.deleteMany({});
+  await Category.insertMany(defaults);
+  res.json({ message: 'Construction Categories seeded' });
 });
 
-/* ===== SERVER START ===== */
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+app.listen(5000, () => console.log('🚀 Server running on http://localhost:5000'));
