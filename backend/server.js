@@ -1,56 +1,26 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const Category = require('./models/Category');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-/* ===== UPLOADS ===== */
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadDir));
-
-/* ===== DB ===== */
-mongoose
-  .connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/house_expenses')
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(console.error);
-
-/* ===== MODEL ===== */
+/* ===== UPDATED MODEL (FIXED) ===== */
 const expenseSchema = new mongoose.Schema({
+  date: { type: Date, default: Date.now }, // Added for custom dates
+  vendor: { type: String, default: 'N/A' }, // NEW FIELD
   quantity: { type: Number, required: true },
+  unit: { type: String, default: 'unit' },   // NEW FIELD
   category: { type: String, required: true },
   group: { type: String, required: true },
   amount: { type: Number, required: true },
   notes: String,
-  date: { type: Date, default: Date.now },
   Image: String,
 });
 
 const Expense = mongoose.model('Expense', expenseSchema);
 
-/* ===== MULTER ===== */
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadDir),
-  filename: (_, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
-});
-const upload = multer({ storage });
-
-/* ===== ADD EXPENSE ===== */
+/* ===== ADD EXPENSE (FIXED) ===== */
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
-    const { quantity, category, group, amount, notes } = req.body;
+    // CRITICAL: Pull vendor, unit, and date from req.body
+    const { date, vendor, quantity, unit, category, group, amount, notes } = req.body;
+    
     if (!quantity || !category || !group || !amount) {
-      return res.status(400).json({ error: 'Missing fields' });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const imageUrl = req.file
@@ -58,7 +28,10 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
       : null;
 
     const expense = new Expense({
+      date: date || Date.now(),
+      vendor: vendor || 'N/A', // Save Vendor
       quantity: Number(quantity),
+      unit: unit || 'unit',     // Save Unit
       category,
       group,
       amount: Number(amount),
@@ -73,21 +46,21 @@ app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   }
 });
 
-/* ===== UPDATE EXPENSE (FIXED & REQUIRED) ===== */
+/* ===== UPDATE EXPENSE (FIXED) ===== */
 app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
   try {
     const exp = await Expense.findById(req.params.id);
     if (!exp) return res.sendStatus(404);
 
-    // If new image uploaded → delete old image
     if (req.file && exp.Image) {
-      const oldPath = path.join(
-        uploadDir,
-        path.basename(exp.Image)
-      );
+      const oldPath = path.join(uploadDir, path.basename(exp.Image));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
+    // Update ALL fields including Vendor and Unit
+    exp.date = req.body.date || exp.date;
+    exp.vendor = req.body.vendor || exp.vendor;
+    exp.unit = req.body.unit || exp.unit;
     exp.quantity = Number(req.body.quantity);
     exp.category = req.body.category;
     exp.group = req.body.group;
@@ -104,54 +77,3 @@ app.put('/api/expenses/:id', upload.single('Image'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-/* ===== GET EXPENSES ===== */
-app.get('/api/expenses', async (_, res) => {
-  const expenses = await Expense.find().sort({ date: -1 });
-  res.json(expenses);
-});
-
-/* ===== DELETE EXPENSE ===== */
-app.delete('/api/expenses/:id', async (req, res) => {
-  const exp = await Expense.findById(req.params.id);
-  if (!exp) return res.sendStatus(404);
-
-  if (exp.Image) {
-    const img = path.join(uploadDir, path.basename(exp.Image));
-    if (fs.existsSync(img)) fs.unlinkSync(img);
-  }
-
-  await exp.deleteOne();
-  res.json({ success: true });
-});
-
-/* ===== CATEGORIES ===== */
-app.get('/api/categories', async (_, res) => {
-  const cats = await Category.find().sort({ name: 1 });
-  const grouped = {};
-  cats.forEach((c) => {
-    if (!grouped[c.group]) grouped[c.group] = [];
-    grouped[c.group].push(c);
-  });
-  res.json(grouped);
-});
-
-/* ===== SEED ===== */
-app.get('/api/seed/categories', async (_, res) => {
-  const defaults = {
-    'Labor & Services': [
-      { name: 'Carpenter Charges', group: 'Labor & Services' },
-      { name: 'Mason Charges', group: 'Labor & Services' },
-    ],
-    Plumbing: [{ name: 'Water Tank', group: 'Plumbing' }],
-  };
-
-  const flat = Object.values(defaults).flat();
-  await Category.insertMany(flat, { ordered: false });
-  res.json({ message: 'Categories seeded' });
-});
-
-/* ===== START ===== */
-app.listen(5000, () =>
-  console.log('🚀 Server running on http://localhost:5000')
-);
