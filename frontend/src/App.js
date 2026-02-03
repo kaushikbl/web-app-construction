@@ -6,7 +6,7 @@ const API = '/api';
 
 /* ===== PROJECT CONFIG ===== */
 const PROJECT_TOTAL_BUDGET = 11200000;
-const MONTH_BUDGET = Math.round(PROJECT_TOTAL_BUDGET / 12);
+const MONTH_BUDGET = Math.round(PROJECT_TOTAL_BUDGET / 16);
 const EDIT_USERS = ['kaushik', 'shruthi'];
 
 const CATEGORY_ICONS = {
@@ -28,12 +28,13 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   
-  // STEPPED FILTERS: Defaults to current date
+  // FILTERS
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
-  
-  const [editing, setEditing] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // UI STATE
+  const [editing, setEditing] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
   const getToday = () => new Date().toISOString().split('T')[0];
@@ -69,9 +70,7 @@ function App() {
 
   const submit = async () => {
     if (!canEdit) return alert('Read-only access');
-    
-    // VENDOR VALIDATION FIX
-    if (!form.vendor) return alert('Please enter the Vendor/Payee name');
+    if (!form.vendor) return alert('Please enter Vendor/Payee name');
 
     const fd = new FormData();
     fd.append('date', form.date);
@@ -80,7 +79,7 @@ function App() {
     fd.append('category', form.category);
     fd.append('group', form.group);
     fd.append('amount', form.amount);
-    fd.append('vendor', form.vendor); // FIXED: Explicitly appended
+    fd.append('vendor', form.vendor);
     fd.append('notes', form.notes);
     if (form.Image) fd.append('Image', form.Image);
 
@@ -94,14 +93,19 @@ function App() {
       }
       resetForm();
     } catch (err) {
-      alert("Error saving record. Check vendor name and network.");
+      alert("Error saving record");
     }
   };
 
   const remove = async (id) => {
-    if (!canEdit || !window.confirm('Permanently delete this entry?')) return;
+    if (!canEdit || !window.confirm('Delete record?')) return;
     await axios.delete(`${API}/expenses/${id}`);
     setExpenses(p => p.filter(e => e._id !== id));
+  };
+
+  const getImageUrl = (img) => {
+    if (!img) return null;
+    return img.includes('/uploads/') ? img.substring(img.indexOf('/uploads/')) : img;
   };
 
   const totalProjectSpent = useMemo(() => expenses.reduce((s, e) => s + Number(e.amount || 0), 0), [expenses]);
@@ -121,14 +125,16 @@ function App() {
   }, [expenses, selectedYear, selectedMonth, searchTerm]);
 
   const currentViewTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const categoryTotals = filteredExpenses.reduce((a, e) => { a[e.group] = (a[e.group] || 0) + Number(e.amount || 0); return a; }, {});
+  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
 
   if (!user) {
     return (
       <div style={loginOverlay}>
         <div style={loginCard}>
           <h2 style={{ color: '#2c3e50' }}>🏗️ BuildTrack AI</h2>
-          <input style={loginInput} placeholder="Enter Name" value={loginName} onChange={(e) => setLoginName(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && loginName && setUser(loginName)} />
-          <button style={loginBtn} onClick={() => { if(loginName) { localStorage.setItem('user', loginName); setUser(loginName); }}}>Open Dashboard</button>
+          <input style={loginInput} placeholder="Your Name" value={loginName} onChange={(e) => setLoginName(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && loginName && setUser(loginName)} />
+          <button style={loginBtn} onClick={() => { if(loginName) { localStorage.setItem('user', loginName); setUser(loginName); }}}>Access Dashboard</button>
         </div>
       </div>
     );
@@ -137,21 +143,22 @@ function App() {
   return (
     <div style={mainBg}>
       <div className="container">
-        {/* PROGRESS BAR */}
+        {/* BUDGET HEADER */}
         <div style={{ ...card, marginBottom: 20, borderTop: '4px solid #28a745' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <strong>G+3 Total Budget Usage</strong>
+            <strong>Total Construction Budget Usage</strong>
             <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
           </div>
           <div style={progressBg}><div style={{ ...progressBar, width: `${(totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100}%` }} /></div>
-          <div style={{ ...muted, marginTop: 5 }}>Spent: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
+          <div style={{ ...muted, marginTop: 5 }}>Overall: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
-        {/* YEAR & MONTH FILTERS */}
+        {/* FILTERS */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 25 }}>
           <div style={{ ...card, flex: 1, textAlign: 'center' }}>
             <div style={muted}>Filter Total</div>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', margin: '15px 0' }}>{formatINR(currentViewTotal)}</div>
+            <CircularGauge percent={Math.min(Math.round((currentViewTotal / MONTH_BUDGET) * 100), 100)} />
+            <div style={{ fontWeight: 'bold' }}>{formatINR(currentViewTotal)}</div>
           </div>
           <div style={{ ...card, flex: 2 }}>
             <h3>Search & Filters</h3>
@@ -161,7 +168,7 @@ function App() {
               </select>
               <select style={selectStyle} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                 <option value="">All Months</option>
-                {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
                   <option key={i} value={(i + 1).toString().padStart(2, '0')}>{m}</option>
                 ))}
               </select>
@@ -170,15 +177,15 @@ function App() {
           </div>
         </div>
 
-        {/* FORM SECTION */}
+        {/* ENTRY FORM */}
         {canEdit && (
           <div style={{ ...card, marginBottom: 25, background: '#f8f9fa' }}>
-            <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
+            <h3>{editing ? '📝 Edit Transaction' : '➕ New Entry'}</h3>
             <div className="form-row">
               <div style={inputGroup}><label style={labelStyle}>Date</label>
                 <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
               </div>
-              <div style={inputGroup}><label style={labelStyle}>Vendor / Payee</label>
+              <div style={inputGroup}><label style={labelStyle}>Vendor</label>
                 <input placeholder="Shop Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
               <div style={inputGroup}><label style={labelStyle}>Qty</label>
@@ -203,17 +210,34 @@ function App() {
                 <input type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
               </div>
               <div style={{ ...inputGroup, flex: 2 }}><label style={labelStyle}>Notes</label>
-                <input placeholder="Add details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                <input placeholder="Payment details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+              </div>
+              <div style={inputGroup}><label style={labelStyle}>Bill</label>
+                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} />
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-                <button className="btn-add" style={{ height: '40px' }} onClick={submit}>{editing ? 'Update' : 'Save'}</button>
+                <button className="btn-add" style={{ height: '40px' }} onClick={submit}>Save</button>
                 {editing && <button onClick={resetForm} style={clearBtn}>Cancel</button>}
               </div>
             </div>
           </div>
         )}
 
-        {/* LOG TABLE */}
+        {/* CATEGORY CARDS */}
+        <div style={grid}>
+          {Object.entries(categoryTotals).map(([g, amt]) => (
+            <div key={g} style={{ ...card, cursor: 'pointer', borderLeft: '4px solid #28a745' }} onClick={() => setSearchTerm(g)}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{CATEGORY_ICONS[g] || '📦'} {g}</span>
+                <strong>{formatINR(amt)}</strong>
+              </div>
+              <div style={progressBg}><div style={{ ...progressBar, width: `${(amt / maxCategory) * 100}%` }} /></div>
+            </div>
+          ))}
+        </div>
+
+        {/* DATA TABLE */}
+        <h3 style={{ marginTop: 40, marginBottom: 15 }}>Expense Log</h3>
         <table className="expense-table">
           <thead>
             <tr>
@@ -223,33 +247,40 @@ function App() {
               <th>Qty</th>
               <th>Unit</th>
               <th>Amount</th>
+              <th>Bill</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {filteredExpenses.map(e => (
-              <tr key={e._id}>
-                <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
-                <td>
+            {filteredExpenses.map(e => {
+              const img = getImageUrl(e.Image);
+              return (
+                <tr key={e._id}>
+                  <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
+                  <td>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
-                    <div style={{ fontWeight: 'bold' }}>{e.category}</div>
-                </td>
-                <td style={{ color: '#28a745', fontWeight: '500' }}>{e.vendor}</td>
-                <td style={{ fontWeight: '600' }}>{e.quantity}</td>
-                <td style={{ color: '#64748b' }}>{e.unit}</td>
-                <td style={{ fontWeight: 'bold' }}>{formatINR(e.amount)}</td>
-                <td>
-                  {canEdit && (
-                    <div style={{ display: 'flex', gap: 5 }}>
-                      <button className="btn-add" onClick={() => {setEditing(e); setForm({...e, date: e.date.split('T')[0]}); window.scrollTo({top: 0, behavior: 'smooth'})}}>Edit</button>
-                      <button className="btn-delete" onClick={() => remove(e._id)}>Del</button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    <strong>{e.category}</strong>
+                  </td>
+                  <td style={{ color: '#28a745', fontWeight: '500' }}>{e.vendor}</td>
+                  <td>{e.quantity}</td>
+                  <td style={{ color: '#64748b' }}>{e.unit}</td>
+                  <td><strong>{formatINR(e.amount)}</strong></td>
+                  <td>{img ? <img src={img} className="bill-thumb" onClick={() => setPreviewImage(img)} style={{ width: 30, height: 30, cursor: 'pointer', borderRadius: 4 }} alt="bill" /> : '—'}</td>
+                  <td>
+                    {canEdit && (
+                      <div style={{ display: 'flex', gap: 5 }}>
+                        <button className="btn-add" onClick={() => {setEditing(e); setForm({...e, date: e.date.split('T')[0], Image: null}); window.scrollTo({top: 0, behavior: 'smooth'})}}>Edit</button>
+                        <button className="btn-delete" onClick={() => remove(e._id)}>Del</button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+
+        {previewImage && <div style={overlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={previewImg} alt="Preview" /></div>}
       </div>
     </div>
   );
@@ -270,5 +301,14 @@ const progressBar = { height: '100%', background: '#28a745', borderRadius: 10 };
 const searchInput = { padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none', width: '100%', marginTop: '10px' };
 const selectStyle = { flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' };
 const clearBtn = { padding: '5px 10px', fontSize: 11, background: '#eee', border: 'none', borderRadius: 4, cursor: 'pointer' };
+const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginTop: 10 };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
+const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
+
+const CircularGauge = ({ percent }) => (
+  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto' }}>
+    <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{percent}%</div>
+  </div>
+);
 
 export default App;
