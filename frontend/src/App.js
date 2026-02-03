@@ -28,12 +28,10 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState({});
   
-  // FILTERS
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [searchTerm, setSearchTerm] = useState('');
   
-  // UI STATE
   const [editing, setEditing] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -42,7 +40,7 @@ function App() {
   const [form, setForm] = useState({
     date: getToday(),
     quantity: '', 
-    unit: 'Ton', // Default Unit
+    unit: 'Ton',
     category: '', 
     group: '', 
     amount: '', 
@@ -89,7 +87,6 @@ function App() {
     if (!form.vendor) return alert('Please enter Vendor name');
 
     const fd = new FormData();
-    // CRITICAL: Ensure every field name matches your Backend Schema
     fd.append('date', form.date);
     fd.append('vendor', form.vendor);
     fd.append('quantity', form.quantity);
@@ -109,10 +106,8 @@ function App() {
         setExpenses(prev => [res.data, ...prev]);
       }
       resetForm();
-      alert("Saved successfully!");
     } catch (err) {
-      console.error(err);
-      alert("Error saving record. Check if the server is running.");
+      alert("Error saving record.");
     }
   };
 
@@ -144,8 +139,18 @@ function App() {
   }, [expenses, selectedYear, selectedMonth, searchTerm]);
 
   const currentViewTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const categoryTotals = filteredExpenses.reduce((a, e) => { a[e.group] = (a[e.group] || 0) + Number(e.amount || 0); return a; }, {});
-  const maxCategory = Math.max(...Object.values(categoryTotals), 1);
+
+  /* ===== CATEGORY WISE CALCULATIONS ===== */
+  const categorySummary = useMemo(() => {
+    return filteredExpenses.reduce((acc, exp) => {
+      const groupName = exp.group || "Other";
+      acc[groupName] = (acc[groupName] || 0) + Number(exp.amount || 0);
+      return acc;
+    }, {});
+  }, [filteredExpenses]);
+
+  // Find max value to determine progress bar length relative to the highest spender
+  const maxCategorySpent = Math.max(...Object.values(categorySummary), 1);
 
   if (!user) {
     return (
@@ -161,9 +166,15 @@ function App() {
 
   return (
     <div style={mainBg}>
-      <div className="container">
-        {/* PROGRESS */}
-        <div style={{ ...card, marginBottom: 20, borderTop: '4px solid #28a745' }}>
+      <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+        
+        {/* HEADER & BUDGET PROGRESS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h1>Expense Dashboard</h1>
+            <button onClick={() => { localStorage.clear(); setUser(''); }} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 5, cursor: 'pointer' }}>Logout</button>
+        </div>
+
+        <div style={{ ...card, marginBottom: 25, borderTop: '4px solid #28a745' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <strong>Project Budget Progress</strong>
             <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
@@ -172,15 +183,15 @@ function App() {
           <div style={{ ...muted, marginTop: 5 }}>Spent: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
-        {/* VIEW FILTERS */}
+        {/* FILTERS & GAUGE */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 25 }}>
           <div style={{ ...card, flex: 1, textAlign: 'center' }}>
-            <div style={muted}>Filter Total</div>
+            <div style={muted}>Monthly Budget Spent</div>
             <CircularGauge percent={Math.min(Math.round((currentViewTotal / MONTH_BUDGET) * 100), 100)} />
-            <div style={{ fontWeight: 'bold' }}>{formatINR(currentViewTotal)}</div>
+            <div style={{ fontWeight: 'bold' }}>{formatINR(currentViewTotal)} / {formatINR(MONTH_BUDGET)}</div>
           </div>
           <div style={{ ...card, flex: 2 }}>
-            <h3>View Records By:</h3>
+            <h3>View Filters</h3>
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               <select style={selectStyle} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                 <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
@@ -192,39 +203,37 @@ function App() {
                 ))}
               </select>
             </div>
-            <input style={searchInput} placeholder="🔍 Filter search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input style={searchInput} placeholder="🔍 Search vendor, material or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </div>
 
         {/* INPUT FORM */}
         {canEdit && (
-          <div style={{ ...card, marginBottom: 25, background: '#f8f9fa' }}>
+          <div style={{ ...card, marginBottom: 30, background: '#fff', borderLeft: '5px solid #28a745' }}>
             <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
-            <div className="form-row">
+            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginTop: 15 }}>
               <div style={inputGroup}>
-                <label style={labelStyle}>Date & Year Selection</label>
+                <label style={labelStyle}>Date & Year</label>
                 <div style={{ display: 'flex', gap: '5px' }}>
-                    <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} style={{ flex: 2 }} />
-                    <select value={form.date.split('-')[0]} onChange={(e) => handleYearShortcut(e.target.value)} style={{ flex: 1 }}>
+                    <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} style={{ flex: 2, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
+                    <select value={form.date.split('-')[0]} onChange={(e) => handleYearShortcut(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
                         <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
                     </select>
                 </div>
               </div>
               <div style={inputGroup}><label style={labelStyle}>Vendor / Payee</label>
-                <input placeholder="Name of supplier" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
+                <input style={formInput} placeholder="Shop/Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
               <div style={inputGroup}><label style={labelStyle}>Qty</label>
-                <input placeholder="0" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
+                <input style={formInput} placeholder="0" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
               </div>
               <div style={inputGroup}><label style={labelStyle}>Unit</label>
-                <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
+                <select style={formInput} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
                   <option>Ton</option><option>Load</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Sqft</option><option>Units</option>
                 </select>
               </div>
-            </div>
-            <div className="form-row" style={{ marginTop: 15 }}>
               <div style={inputGroup}><label style={labelStyle}>Category</label>
-                <select value={form.category} onChange={e => {
+                <select style={formInput} value={form.category} onChange={e => {
                     const opt = e.target.selectedOptions[0];
                     setForm({...form, category: e.target.value, group: opt.dataset.group})
                 }}>
@@ -235,69 +244,89 @@ function App() {
                 </select>
               </div>
               <div style={inputGroup}><label style={labelStyle}>Amount</label>
-                <input type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+                <input style={formInput} type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
               </div>
-              <div style={{ ...inputGroup, flex: 2 }}><label style={labelStyle}>Notes</label>
-                <input placeholder="Details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+              <div style={{ ...inputGroup, gridColumn: 'span 2' }}><label style={labelStyle}>Notes</label>
+                <input style={formInput} placeholder="Reference details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
               </div>
-              <div style={inputGroup}><label style={labelStyle}>Bill</label>
-                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} />
+              <div style={{ gridColumn: 'span 3' }}>
+                <label style={labelStyle}>Attach Bill Image</label>
+                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} style={{ display: 'block', marginTop: 5 }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-                <button className="btn-add" style={{ height: '40px' }} onClick={submit}>Save</button>
-                {editing && <button onClick={resetForm} style={clearBtn}>Cancel</button>}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 10 }}>
+                {editing && <button onClick={resetForm} style={{ ...clearBtn, height: '40px' }}>Cancel</button>}
+                <button className="btn-add" style={{ height: '40px', width: '120px' }} onClick={submit}>{editing ? 'Update' : 'Add'}</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* LOG TABLE */}
-        <table className="expense-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Vendor</th>
-              <th>Qty</th>
-              <th>Unit</th>
-              <th>Amount</th>
-              <th>Bill</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExpenses.map(e => (
-              <tr key={e._id}>
-                <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                <td>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
-                    <strong>{e.category}</strong>
-                </td>
-                <td style={{ color: '#28a745', fontWeight: 'bold' }}>{e.vendor || 'N/A'}</td>
-                <td>{e.quantity || '0'}</td>
-                <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
-                <td><strong>{formatINR(e.amount)}</strong></td>
-                <td>
-                    {getImageUrl(e.Image) ? 
-                        <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 30, height: 30, cursor: 'pointer', borderRadius: 4 }} alt="bill" /> 
-                    : '—'}
-                </td>
-                <td>
-                  {canEdit && (
-                    <div style={{ display: 'flex', gap: 5 }}>
-                      <button className="btn-add" onClick={() => {
-                          setEditing(e); 
-                          setForm({...e, date: e.date.split('T')[0], Image: null}); 
-                          window.scrollTo({top: 0, behavior: 'smooth'})
-                      }}>Edit</button>
-                      <button className="btn-delete" onClick={() => remove(e._id)}>Del</button>
-                    </div>
-                  )}
-                </td>
-              </tr>
+        {/* CATEGORY WISE EXPENSES SECTION (AS REQUESTED) */}
+        <div style={{ marginBottom: 40 }}>
+          <h3 style={{ marginBottom: 15 }}>Category Wise Expenses</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {Object.entries(categorySummary).map(([group, total]) => (
+              <div key={group} style={categoryCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 'bold' }}>{CATEGORY_ICONS[group] || '📦'} {group}</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatINR(total)}</span>
+                </div>
+                <div style={categoryProgressBg}>
+                  <div style={{ ...categoryProgressBar, width: `${(total / maxCategorySpent) * 100}%` }} />
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        {/* LOG TABLE SECTION */}
+        <div style={card}>
+          <h3 style={{ marginBottom: 15 }}>Recent Transactions</h3>
+          <table className="expense-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Vendor</th>
+                <th>Qty/Unit</th>
+                <th>Amount</th>
+                <th>Bill</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredExpenses.map(e => (
+                <tr key={e._id}>
+                  <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
+                  <td>
+                      <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
+                      <strong>{e.category}</strong>
+                  </td>
+                  <td style={{ color: '#28a745', fontWeight: 'bold' }}>{e.vendor || 'N/A'}</td>
+                  <td>{e.quantity || '0'} <small style={{ color: '#64748b' }}>{e.unit || '—'}</small></td>
+                  <td><strong>{formatINR(e.amount)}</strong></td>
+                  <td>
+                      {getImageUrl(e.Image) ? 
+                          <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 35, height: 35, cursor: 'pointer', borderRadius: 4, objectFit: 'cover' }} alt="bill" /> 
+                      : '—'}
+                  </td>
+                  <td>
+                    {canEdit && (
+                      <div style={{ display: 'flex', gap: 5 }}>
+                        <button className="btn-add" style={{ padding: '4px 8px' }} onClick={() => {
+                            setEditing(e); 
+                            setForm({...e, date: e.date.split('T')[0], Image: null}); 
+                            window.scrollTo({top: 0, behavior: 'smooth'})
+                        }}>Edit</button>
+                        <button className="btn-delete" style={{ padding: '4px 8px' }} onClick={() => remove(e._id)}>Del</button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {previewImage && <div style={overlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={previewImg} alt="Preview" /></div>}
       </div>
@@ -305,22 +334,29 @@ function App() {
   );
 }
 
+/* ===== STYLES ===== */
 const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
 const loginOverlay = { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2c3e50' };
 const loginCard = { background: 'white', padding: '40px', borderRadius: '15px', textAlign: 'center' };
 const loginInput = { width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '8px', border: '1px solid #ddd' };
 const loginBtn = { width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' };
 const card = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' };
-const inputGroup = { display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 };
+const inputGroup = { display: 'flex', flexDirection: 'column', gap: '5px' };
 const labelStyle = { fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' };
 const muted = { fontSize: 12, color: '#777' };
 const progressBg = { height: 8, background: '#e9ecef', borderRadius: 10, marginTop: 10 };
 const progressBar = { height: '100%', background: '#28a745', borderRadius: 10 };
-const searchInput = { padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none', width: '100%', marginTop: '10px' };
+const searchInput = { padding: '12px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none', width: '100%', marginTop: '10px' };
 const selectStyle = { flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' };
-const clearBtn = { padding: '5px 10px', background: '#eee', border: 'none', borderRadius: 4, cursor: 'pointer' };
+const formInput = { padding: '10px', borderRadius: '4px', border: '1px solid #ddd', width: '100%' };
+const clearBtn = { padding: '5px 15px', background: '#eee', border: 'none', borderRadius: 4, cursor: 'pointer' };
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
+
+// CATEGORY CARD STYLES
+const categoryCard = { background: 'white', padding: '15px 20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' };
+const categoryProgressBg = { height: '6px', background: '#e9ecef', borderRadius: '10px', overflow: 'hidden' };
+const categoryProgressBar = { height: '100%', background: '#28a745', borderRadius: '10px', transition: 'width 0.4s ease' };
 
 const CircularGauge = ({ percent }) => (
   <div style={{ width: 80, height: 80, borderRadius: '50%', background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto' }}>
