@@ -40,7 +40,7 @@ function App() {
   const [form, setForm] = useState({
     date: getToday(),
     quantity: '', 
-    unit: 'Ton',
+    unit: 'Units', // Default set to Units internally
     category: '', 
     group: '', 
     amount: '', 
@@ -72,7 +72,7 @@ function App() {
   const resetForm = () => {
     setEditing(null);
     setForm({ 
-      date: getToday(), quantity: '', unit: 'Ton', category: '', 
+      date: getToday(), quantity: '', unit: 'Units', category: '', 
       group: '', amount: '', notes: '', vendor: '', Image: null 
     });
   };
@@ -198,34 +198,32 @@ function App() {
           </div>
         </div>
 
-        {/* UPDATED INPUT FORM */}
         {canEdit && (
           <div style={{ ...card, marginBottom: 30, background: '#fff', borderLeft: '5px solid #28a745' }}>
             <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginTop: 15 }}>
               
-              {/* COMBINED DATE & YEAR */}
               <div style={inputGroup}>
                 <label style={labelStyle}>Date & Year</label>
-                <input 
-                  type="date" 
-                  value={form.date} 
-                  onChange={e => setForm({...form, date: e.target.value})} 
-                  style={formInput} 
-                />
+                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} style={formInput} />
               </div>
 
               <div style={inputGroup}><label style={labelStyle}>Vendor / Payee</label>
                 <input style={formInput} placeholder="Shop/Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
+              
               <div style={inputGroup}><label style={labelStyle}>Qty</label>
                 <input style={formInput} placeholder="0" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
               </div>
+              
               <div style={inputGroup}><label style={labelStyle}>Unit</label>
                 <select style={formInput} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-                  <option>Ton</option><option>Load</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Sqft</option><option>Units</option>
+                  {/* Default Units remains active but removed from selection list */}
+                  <option value="Units" hidden>Units (Default)</option>
+                  <option>Ton</option><option>Load</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Sqft</option>
                 </select>
               </div>
+
               <div style={inputGroup}><label style={labelStyle}>Category</label>
                 <select style={formInput} value={form.category} onChange={e => {
                     const opt = e.target.selectedOptions[0];
@@ -272,7 +270,6 @@ function App() {
           </div>
         </div>
 
-        {/* UPDATED LOG TABLE SECTION */}
         <div style={card}>
           <h3 style={{ marginBottom: 15 }}>Recent Transactions</h3>
           <table className="expense-table" style={{ width: '100%' }}>
@@ -296,7 +293,6 @@ function App() {
                       <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
                       <strong>{e.category}</strong>
                   </td>
-                  {/* CLEAN PLAIN COLOR VENDOR */}
                   <td style={{ color: '#475569' }}>{e.vendor || '—'}</td>
                   <td>{e.quantity || '0'}</td>
                   <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
