@@ -77,11 +77,6 @@ function App() {
     });
   };
 
-  const handleYearShortcut = (year) => {
-    const currentParts = form.date.split('-');
-    setForm({ ...form, date: `${year}-${currentParts[1]}-${currentParts[2]}` });
-  };
-
   const submit = async () => {
     if (!canEdit) return alert('Read-only access');
     if (!form.vendor) return alert('Please enter Vendor name');
@@ -140,7 +135,6 @@ function App() {
 
   const currentViewTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  /* ===== CATEGORY WISE CALCULATIONS ===== */
   const categorySummary = useMemo(() => {
     return filteredExpenses.reduce((acc, exp) => {
       const groupName = exp.group || "Other";
@@ -149,7 +143,6 @@ function App() {
     }, {});
   }, [filteredExpenses]);
 
-  // Find max value to determine progress bar length relative to the highest spender
   const maxCategorySpent = Math.max(...Object.values(categorySummary), 1);
 
   if (!user) {
@@ -168,7 +161,6 @@ function App() {
     <div style={mainBg}>
       <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
         
-        {/* HEADER & BUDGET PROGRESS */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h1>Expense Dashboard</h1>
             <button onClick={() => { localStorage.clear(); setUser(''); }} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 5, cursor: 'pointer' }}>Logout</button>
@@ -183,7 +175,6 @@ function App() {
           <div style={{ ...muted, marginTop: 5 }}>Spent: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
-        {/* FILTERS & GAUGE */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 25 }}>
           <div style={{ ...card, flex: 1, textAlign: 'center' }}>
             <div style={muted}>Monthly Budget Spent</div>
@@ -194,7 +185,7 @@ function App() {
             <h3>View Filters</h3>
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               <select style={selectStyle} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+                <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option>
               </select>
               <select style={selectStyle} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                 <option value="">Full Year</option>
@@ -207,20 +198,23 @@ function App() {
           </div>
         </div>
 
-        {/* INPUT FORM */}
+        {/* UPDATED INPUT FORM */}
         {canEdit && (
           <div style={{ ...card, marginBottom: 30, background: '#fff', borderLeft: '5px solid #28a745' }}>
             <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginTop: 15 }}>
+              
+              {/* COMBINED DATE & YEAR */}
               <div style={inputGroup}>
                 <label style={labelStyle}>Date & Year</label>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                    <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} style={{ flex: 2, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
-                    <select value={form.date.split('-')[0]} onChange={(e) => handleYearShortcut(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
-                        <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
-                    </select>
-                </div>
+                <input 
+                  type="date" 
+                  value={form.date} 
+                  onChange={e => setForm({...form, date: e.target.value})} 
+                  style={formInput} 
+                />
               </div>
+
               <div style={inputGroup}><label style={labelStyle}>Vendor / Payee</label>
                 <input style={formInput} placeholder="Shop/Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
@@ -261,7 +255,6 @@ function App() {
           </div>
         )}
 
-        {/* CATEGORY WISE EXPENSES SECTION (AS REQUESTED) */}
         <div style={{ marginBottom: 40 }}>
           <h3 style={{ marginBottom: 15 }}>Category Wise Expenses</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -279,7 +272,7 @@ function App() {
           </div>
         </div>
 
-        {/* LOG TABLE SECTION */}
+        {/* UPDATED LOG TABLE SECTION */}
         <div style={card}>
           <h3 style={{ marginBottom: 15 }}>Recent Transactions</h3>
           <table className="expense-table" style={{ width: '100%' }}>
@@ -288,7 +281,8 @@ function App() {
                 <th>Date</th>
                 <th>Category</th>
                 <th>Vendor</th>
-                <th>Qty/Unit</th>
+                <th>Qty</th>
+                <th>Unit</th>
                 <th>Amount</th>
                 <th>Bill</th>
                 <th>Action</th>
@@ -302,8 +296,10 @@ function App() {
                       <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
                       <strong>{e.category}</strong>
                   </td>
-                  <td style={{ color: '#28a745', fontWeight: 'bold' }}>{e.vendor || 'N/A'}</td>
-                  <td>{e.quantity || '0'} <small style={{ color: '#64748b' }}>{e.unit || '—'}</small></td>
+                  {/* CLEAN PLAIN COLOR VENDOR */}
+                  <td style={{ color: '#475569' }}>{e.vendor || '—'}</td>
+                  <td>{e.quantity || '0'}</td>
+                  <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
                   <td><strong>{formatINR(e.amount)}</strong></td>
                   <td>
                       {getImageUrl(e.Image) ? 
@@ -334,7 +330,6 @@ function App() {
   );
 }
 
-/* ===== STYLES ===== */
 const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
 const loginOverlay = { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2c3e50' };
 const loginCard = { background: 'white', padding: '40px', borderRadius: '15px', textAlign: 'center' };
@@ -353,7 +348,6 @@ const clearBtn = { padding: '5px 15px', background: '#eee', border: 'none', bord
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
 
-// CATEGORY CARD STYLES
 const categoryCard = { background: 'white', padding: '15px 20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' };
 const categoryProgressBg = { height: '6px', background: '#e9ecef', borderRadius: '10px', overflow: 'hidden' };
 const categoryProgressBar = { height: '100%', background: '#28a745', borderRadius: '10px', transition: 'width 0.4s ease' };
