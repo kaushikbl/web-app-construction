@@ -4,11 +4,12 @@ import './App.css';
 
 const API = '/api';
 
-/* ===== CONFIG ===== */
+/* ===== PROJECT CONFIG ===== */
 const PROJECT_BUDGET = 11200000;
 const PROJECT_DURATION_MONTHS = 12;
 const MONTH_BUDGET = Math.round(PROJECT_BUDGET / PROJECT_DURATION_MONTHS);
 
+/* ===== ACCESS CONTROL ===== */
 const EDIT_USERS = ['kaushik', 'shruthi'];
 
 /* ===== CATEGORY ICONS ===== */
@@ -29,12 +30,11 @@ const CATEGORY_ICONS = {
 
 function App() {
   /* ===== LOGIN ===== */
-  const [user, setUser] = useState(
-    localStorage.getItem('user') || ''
-  );
+  const [user, setUser] = useState(localStorage.getItem('user') || '');
   const [loginName, setLoginName] = useState('');
 
   const canEdit = EDIT_USERS.includes(user.toLowerCase());
+  const roleLabel = canEdit ? 'Editor' : 'Viewer';
 
   /* ===== STATE ===== */
   const [expenses, setExpenses] = useState([]);
@@ -52,7 +52,7 @@ function App() {
     Image: null,
   });
 
-  /* ===== LOAD ===== */
+  /* ===== LOAD DATA ===== */
   useEffect(() => {
     loadCategories();
     loadExpenses();
@@ -68,6 +68,14 @@ function App() {
     setExpenses(res.data);
   };
 
+  /* ===== AUTO SELECT CURRENT MONTH ===== */
+  useEffect(() => {
+    const now = new Date();
+    setSelectedMonth(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    );
+  }, []);
+
   /* ===== IMAGE FIX ===== */
   const getImageUrl = (img) => {
     if (!img) return null;
@@ -81,7 +89,7 @@ function App() {
     if (!canEdit) return alert('Read-only access');
 
     if (!form.quantity || !form.category || !form.group || !form.amount) {
-      alert('Fill required fields');
+      alert('Please fill required fields');
       return;
     }
 
@@ -89,10 +97,7 @@ function App() {
     Object.entries(form).forEach(([k, v]) => v && fd.append(k, v));
 
     if (editing) {
-      const res = await axios.put(
-        `${API}/expenses/${editing._id}`,
-        fd
-      );
+      const res = await axios.put(`${API}/expenses/${editing._id}`, fd);
       setExpenses((p) =>
         p.map((e) => (e._id === editing._id ? res.data : e))
       );
@@ -132,24 +137,20 @@ function App() {
 
   const remove = async (id) => {
     if (!canEdit) return;
-    if (!window.confirm('Delete expense?')) return;
+    if (!window.confirm('Delete this expense?')) return;
     await axios.delete(`${API}/expenses/${id}`);
     setExpenses((p) => p.filter((e) => e._id !== id));
   };
 
-  /* ===== MONTHS ===== */
+  /* ===== MONTH LIST (SHORT + YEAR) ===== */
   const year = new Date().getFullYear();
-  const months = Array.from({ length: 12 }, (_, i) => ({
-    value: `${year}-${String(i + 1).padStart(2, '0')}`,
-    label: new Date(year, i).toLocaleString('default', { month: 'short' }),
-  }));
-
-  useEffect(() => {
-    const now = new Date();
-    setSelectedMonth(
-      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    );
-  }, []);
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(year, i);
+    return {
+      value: `${year}-${String(i + 1).padStart(2, '0')}`,
+      label: d.toLocaleString('default', { month: 'short', year: 'numeric' }),
+    };
+  });
 
   /* ===== FILTER ===== */
   const filteredExpenses = selectedMonth
@@ -173,10 +174,16 @@ function App() {
     100
   );
 
+  /* ===== CATEGORY TOTALS ===== */
   const categoryTotals = filteredExpenses.reduce((a, e) => {
     a[e.group] = (a[e.group] || 0) + Number(e.amount || 0);
     return a;
   }, {});
+
+  /* ===== TOP COST DRIVERS (TOP 3) ===== */
+  const topDrivers = Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
   const maxCategory = Math.max(...Object.values(categoryTotals), 1);
 
@@ -207,17 +214,43 @@ function App() {
     );
   }
 
-  /* ===== UI ===== */
+  /* ===== MAIN UI ===== */
   return (
     <div className="container">
       <h1>Expense Dashboard</h1>
 
-      {/* SUMMARY */}
+      {/* ===== USER BAR ===== */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
+        <div>
+          <strong>{user}</strong>{' '}
+          <span
+            style={{
+              padding: '2px 8px',
+              borderRadius: 12,
+              fontSize: 12,
+              background: canEdit ? '#28a745' : '#0d6efd',
+              color: 'white',
+            }}
+          >
+            {roleLabel}
+          </span>
+        </div>
+        <button
+          className="btn-delete"
+          onClick={() => {
+            localStorage.removeItem('user');
+            setUser('');
+          }}
+        >
+          Logout
+        </button>
+      </div>
+
+      {/* ===== SUMMARY ROW ===== */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         <div style={card}>
-          <h3>Hello 👋</h3>
-          <strong>{user}</strong>
-          <div style={muted}>Residential Building (G+3)</div>
+          <h3>Residential Building</h3>
+          <div style={muted}>G+3 Construction</div>
         </div>
 
         <div style={{ ...card, textAlign: 'center' }}>
@@ -227,10 +260,26 @@ function App() {
             ₹{monthlySpent.toLocaleString()} / ₹{MONTH_BUDGET.toLocaleString()}
           </div>
         </div>
+
+        {/* ===== TOP COST DRIVERS ===== */}
+        <div style={card}>
+          <h4>🔥 Top Cost Drivers</h4>
+          {topDrivers.length === 0 && <div style={muted}>No data</div>}
+          {topDrivers.map(([g, amt]) => (
+            <div key={g} style={{ marginBottom: 6 }}>
+              {CATEGORY_ICONS[g] || '📦'} {g}
+              <div style={muted}>₹{amt.toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* MONTH SELECT */}
-      <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+      {/* ===== MONTH SELECT ===== */}
+      <select
+        value={selectedMonth}
+        onChange={(e) => setSelectedMonth(e.target.value)}
+        style={{ marginBottom: 20 }}
+      >
         {months.map((m) => (
           <option key={m.value} value={m.value}>
             {m.label}
@@ -238,12 +287,16 @@ function App() {
         ))}
       </select>
 
-      {/* ADD / EDIT */}
+      {/* ===== ADD / EDIT ===== */}
       {canEdit && (
-        <div style={{ ...card, marginTop: 20 }}>
+        <div style={{ ...card, marginBottom: 25 }}>
           <h3>{editing ? 'Edit Expense' : 'Add Expense'}</h3>
           <div className="form-row">
-            <input placeholder="Qty" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+            <input
+              placeholder="Quantity"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+            />
             <select
               value={form.category}
               onChange={(e) =>
@@ -254,7 +307,7 @@ function App() {
                 })
               }
             >
-              <option value="">Category</option>
+              <option value="">Select Category</option>
               {Object.entries(categories).map(([g, items]) => (
                 <optgroup key={g} label={g}>
                   {items.map((c) => (
@@ -265,8 +318,17 @@ function App() {
                 </optgroup>
               ))}
             </select>
-            <input placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-            <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <input
+              type="number"
+              placeholder="Amount"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+            <input
+              placeholder="Notes"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
           </div>
           <div className="form-row">
             <input type="file" onChange={(e) => setForm({ ...form, Image: e.target.files[0] })} />
@@ -277,8 +339,8 @@ function App() {
         </div>
       )}
 
-      {/* CATEGORY WISE */}
-      <h3 style={{ marginTop: 30 }}>Category Wise Expenses</h3>
+      {/* ===== CATEGORY WISE ===== */}
+      <h3>Category Wise Expenses</h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {Object.entries(categoryTotals).map(([g, amt]) => (
           <div key={g} style={card}>
@@ -293,7 +355,7 @@ function App() {
         ))}
       </div>
 
-      {/* RECENT */}
+      {/* ===== RECENT TRANSACTIONS ===== */}
       <h3 style={{ marginTop: 30 }}>Recent Transactions</h3>
       <table className="expense-table">
         <thead>
@@ -350,7 +412,7 @@ function App() {
   );
 }
 
-/* ===== UI HELPERS ===== */
+/* ===== SMALL COMPONENTS ===== */
 const CircularGauge = ({ percent }) => (
   <div style={{
     width: 120, height: 120, borderRadius: '50%',
