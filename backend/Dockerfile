@@ -1,12 +1,13 @@
 # Use official Node.js LTS version
-FROM node:18-alpine
+FROM node:20
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install --production
+
+RUN npm install
 
 # Copy the rest of the backend code
 COPY . .
@@ -15,4 +16,4 @@ COPY . .
 EXPOSE 5000
 
 # Start the backend
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
