@@ -74,7 +74,6 @@ pipeline {
                        kubectl rollout status deployment/frontend
                        kubectl rollout status deployment/backend
                        """
-                       
                        }
                    }
                }
