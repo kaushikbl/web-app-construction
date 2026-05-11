@@ -9,5 +9,9 @@ spec:
   resources:
     requests:
       storage: 1Gi
+<<<<<<< HEAD
   storageClassName: gp3   #(for aws)
+=======
+   storageClassName: gp3   #(for aws)
+>>>>>>> 0dea39e3d2d36188127af48716bd85ff8268175c
  # storageClassName: hostpath  #for windows
