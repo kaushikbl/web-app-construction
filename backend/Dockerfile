@@ -1,5 +1,5 @@
 # Use official Node.js LTS version
-FROM node:20
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 5000
 
 # Start the backend
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
