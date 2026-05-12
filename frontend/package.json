@@ -11,7 +11,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "jest --ci --reporters=default --reporters=jest-junit"
+    "test": "react-scripts test --watchAll=false"
   },
   "browserslist": {
     "production": [
