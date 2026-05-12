@@ -34,7 +34,7 @@ describe('Expense Dashboard', () => {
 
   test('renders the dashboard title', async () => {
     render(<App />);
-    expect(await screen.findByText(/Expense Dashboard/i)).toBeInTheDocument();
+    expect(await screen.findByText(/BuildTrack AI/i)).toBeInTheDocument();
   });
 
   test('renders existing expenses and total', async () => {
