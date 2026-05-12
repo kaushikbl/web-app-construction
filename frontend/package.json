@@ -23,11 +23,9 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-    ],
-    
-    "devDependencies": {
-  "jest-junit": "^16.0.0"
-}
-
+    ]
+  },
+  "devDependencies": {
+    "jest-junit": "^17.0.0"
   }
 }
