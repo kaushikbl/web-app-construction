@@ -80,6 +80,9 @@ function App() {
   const submit = async () => {
     if (!canEdit) return alert('Read-only access');
     if (!form.vendor) return alert('Please enter Vendor name');
+    if (!form.category) return alert('Select category');
+    if (!form.amount) return alert('Enter amount');
+    if (!form.quantity) return alert('Enter quantity');
 
     const fd = new FormData();
     fd.append('date', form.date);

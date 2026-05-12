@@ -51,6 +51,12 @@ const upload = multer({ storage });
 app.post('/api/expenses', upload.single('Image'), async (req, res) => {
   try {
     const { date, vendor, quantity, unit, category, group, amount, notes } = req.body;
+
+    if (!category || !group || !amount || !quantity) {
+  return res.status(400).json({
+    error: 'Category, Group, Quantity and Amount are required'
+  });
+}
     
     const imageUrl = req.file
       ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
@@ -151,4 +157,11 @@ app.get('/api/seed/categories', async (_, res) => {
   res.json({ message: 'Construction Categories seeded' });
 });
 
+
+app.get('/health', (_, res) => {
+  res.status(200).json({
+    status: 'UP',
+    service: 'backend'
+  });
+});
 app.listen(5000, () => console.log('🚀 Server running on http://localhost:5000'));
