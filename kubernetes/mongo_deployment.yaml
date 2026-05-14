@@ -1,21 +1,25 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: mongo
+  name: mongoDB
   namespace: dev
+
 spec:
   replicas: 1
   revisionHistoryLimit: 2
+
   selector:
     matchLabels:
-      app: mongo
+      app: mongoDB
+
   template:
     metadata:
       labels:
-        app: mongo
+        app: mongoDB
+
     spec:
       containers:
-        - name: mongo
+        - name: mongoDB
           image: mongo:6.0
           resources:
             requests:
@@ -24,12 +28,15 @@ spec:
             limits:
               cpu: "200m"
               memory: "256Mi"
+
           ports:
             - containerPort: 27017
+
           volumeMounts:
-            - name: mongo-storage
+            - name: mongoDB-storage
               mountPath: /data/db
+
       volumes:
-        - name: mongo-storage
+        - name: mongoDB-storage
           persistentVolumeClaim:
             claimName: mongo-pvc
