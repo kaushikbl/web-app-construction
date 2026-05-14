@@ -29,7 +29,7 @@ spec:
             - containerPort: 5000
           env:
             - name: MONGO_URI
-              value: mongodb://mongo:27017/house_expenses
+              value: mongodb://mongo-db:27017/house_expenses
             - name: PORT
               value: "5000"
 
