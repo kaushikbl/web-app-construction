@@ -152,7 +152,7 @@ function App() {
     return (
       <div style={loginOverlay}>
         <div style={loginCard}>
-          <h2>🏗️ BuildTrack AI</h2>
+          <h2>Login to BuildNest</h2>
           <input style={loginInput} placeholder="Your Name" value={loginName} onChange={(e) => setLoginName(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && loginName && setUser(loginName)} />
           <button style={loginBtn} onClick={() => { if(loginName) { localStorage.setItem('user', loginName); setUser(loginName); }}}>Enter</button>
         </div>
