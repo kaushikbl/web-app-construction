@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mongoDB
+  name: mongo-db
   namespace: dev
 
 spec:
@@ -10,16 +10,16 @@ spec:
 
   selector:
     matchLabels:
-      app: mongoDB
+      app: mongo-db
 
   template:
     metadata:
       labels:
-        app: mongoDB
+        app: mongo-db
 
     spec:
       containers:
-        - name: mongoDB
+        - name: mongo-db
           image: mongo:6.0
           resources:
             requests:
@@ -33,10 +33,10 @@ spec:
             - containerPort: 27017
 
           volumeMounts:
-            - name: mongoDB-storage
+            - name: mongo-db-storage
               mountPath: /data/db
 
       volumes:
-        - name: mongoDB-storage
+        - name: mongo-db-storage
           persistentVolumeClaim:
             claimName: mongo-pvc
