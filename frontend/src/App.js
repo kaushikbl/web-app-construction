@@ -52,21 +52,24 @@ function App() {
   const canEdit = EDIT_USERS.includes(user.toLowerCase());
 
   useEffect(() => {
-    loadCategories(); loadExpenses();
-  }, []);
+    if (user) {
+      loadCategories(); 
+      loadExpenses();
+    }
+  }, [user]);
 
   const loadCategories = async () => {
     try {
         const res = await axios.get(`${API}/categories`);
         setCategories(res.data || {});
-    } catch (e) { console.error("Error loading categories"); }
+    } catch (e) { console.error("Error loading categories", e); }
   };
 
   const loadExpenses = async () => {
     try {
         const res = await axios.get(`${API}/expenses`);
         setExpenses(res.data || []);
-    } catch (e) { console.error("Error loading expenses"); }
+    } catch (e) { console.error("Error loading expenses", e); }
   };
 
   const resetForm = () => {
@@ -111,8 +114,12 @@ function App() {
 
   const remove = async (id) => {
     if (!canEdit || !window.confirm('Delete record?')) return;
-    await axios.delete(`${API}/expenses/${id}`);
-    setExpenses(p => p.filter(e => e._id !== id));
+    try {
+      await axios.delete(`${API}/expenses/${id}`);
+      setExpenses(p => p.filter(e => e._id !== id));
+    } catch (err) {
+      alert("Error deleting record.");
+    }
   };
 
   const getImageUrl = (img) => {
@@ -148,208 +155,187 @@ function App() {
 
   const maxCategorySpent = Math.max(...Object.values(categorySummary), 1);
 
-if (!user) {
-  return (
-    <div className="modern-login-wrapper">
+  /* ========================================= */
+  /* 1. LOGIN SCREEN SUB-RENDER CODE BLOCK    */
+  /* ========================================= */
+  if (!user) {
+    return (
+      <div className="modern-login-wrapper">
+        <div className="left-panel">
+          <div>
+            <div className="brand-section">
+              <div className="logo-box">🏗️</div>
+              <div>
+                <h1 className="brand-title">BuildNest</h1>
+                <p className="brand-sub">Smart Construction Dashboard</p>
+              </div>
+            </div>
 
-      <div className="left-panel">
-        <div>
-
-          <div className="brand-section">
-            <div className="logo-box">🏗️</div>
-
-            <div>
-              <h1 className="brand-title">BuildNest</h1>
-
-              <p className="brand-sub">
-                Smart Construction Dashboard
+            <div style={{ marginTop: 80 }}>
+              <h1 className="hero-title">
+                Build Better.<br />
+                Track <span style={{ color: '#f59e0b' }}>Smarter.</span>
+              </h1>
+              <p className="hero-text">
+                Monitor budgets, expenses, vendors and construction progress in real time.
               </p>
+
+              <div style={{ marginTop: 50 }}>
+                <div className="feature-item">
+                  <div className="feature-icon">📊</div>
+                  <div>
+                    <div className="feature-title">Real-time Insights</div>
+                    <div className="feature-desc">Track every rupee instantly</div>
+                  </div>
+                </div>
+
+                <div className="feature-item">
+                  <div className="feature-icon">🏗️</div>
+                  <div>
+                    <div className="feature-title">Smart Tracking</div>
+                    <div className="feature-desc">Manage vendors and materials</div>
+                  </div>
+                </div>
+
+                <div className="feature-item">
+                  <div className="feature-icon">🔒</div>
+                  <div>
+                    <div className="feature-title">Secure Access</div>
+                    <div className="feature-desc">Protected project dashboard</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div style={{ marginTop: 80 }}>
+        <div className="right-panel">
+          <div className="login-modern-card">
+            <div className="login-logo">🏠</div>
+            <h1 className="welcome-title">Welcome Back</h1>
+            <p className="welcome-sub">Login to your BuildNest account</p>
 
-            <h1 className="hero-title">
-              Build Better.
-              <br />
-              Track <span style={{ color: '#f59e0b' }}>Smarter.</span>
-            </h1>
+            <input
+              className="modern-input"
+              placeholder="Enter your name"
+              value={loginName}
+              onChange={(e) => setLoginName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && loginName.trim()) {
+                  localStorage.setItem('user', loginName);
+                  setUser(loginName);
+                }
+              }}
+            />
 
-            <p className="hero-text">
-              Monitor budgets, expenses, vendors
-              and construction progress in real time.
-            </p>
+            <button
+              className="modern-login-btn"
+              onClick={() => {
+                if (loginName.trim()) {
+                  localStorage.setItem('user', loginName);
+                  setUser(loginName);
+                }
+              }}
+            >
+              Enter Dashboard →
+            </button>
 
-            <div style={{ marginTop: 50 }}>
-
-              <div className="feature-item">
-                <div className="feature-icon">📊</div>
-
-                <div>
-                  <div className="feature-title">
-                    Real-time Insights
-                  </div>
-
-                  <div className="feature-desc">
-                    Track every rupee instantly
-                  </div>
-                </div>
-              </div>
-
-              <div className="feature-item">
-                <div className="feature-icon">🏗️</div>
-
-                <div>
-                  <div className="feature-title">
-                    Smart Tracking
-                  </div>
-
-                  <div className="feature-desc">
-                    Manage vendors and materials
-                  </div>
-                </div>
-              </div>
-
-              <div className="feature-item">
-                <div className="feature-icon">🔒</div>
-
-                <div>
-                  <div className="feature-title">
-                    Secure Access
-                  </div>
-
-                  <div className="feature-desc">
-                    Protected project dashboard
-                  </div>
-                </div>
-              </div>
-
+            <div className="secure-box">
+              🔐 Secure access to your construction dashboard
             </div>
           </div>
-
         </div>
       </div>
+    );
+  }
 
-      <div className="right-panel">
-
-        <div className="login-modern-card">
-
-          <div className="login-logo">🏠</div>
-
-          <h1 className="welcome-title">
-            Welcome Back
-          </h1>
-
-          <p className="welcome-sub">
-            Login to your BuildNest account
-          </p>
-
-          <input
-            className="modern-input"
-            placeholder="Enter your name"
-            value={loginName}
-            onChange={(e) => setLoginName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && loginName.trim()) {
-                localStorage.setItem('user', loginName);
-                setUser(loginName);
-              }
-            }}
-          />
-
-          <button
-            className="modern-login-btn"
-            onClick={() => {
-              if (loginName.trim()) {
-                localStorage.setItem('user', loginName);
-                setUser(loginName);
-              }
-            }}
-          >
-            Enter Dashboard →
-          </button>
-
-          <div className="secure-box">
-            🔐 Secure access to your construction dashboard
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
+  /* ========================================= */
+  /* 2. MAIN DASHBOARD CONTENT VIEW PANEL     */
+  /* ========================================= */
   return (
-    <div style={mainBg}>
+    <div className="dashboard-bg">
       <div className="container">
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h1 style={{ fontSize: '38px', fontWeight: '800', margin: 0, color: '#0f172a' }}> Expense Dashboard </h1>
-            <button onClick={() => { localStorage.clear(); setUser(''); }} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 5, cursor: 'pointer' }}>Logout</button>
+        {/* HEADER BLOCK */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+            <h1 style={{ fontSize: '38px', fontWeight: '800', margin: 0, color: '#0f172a' }}>Expense Dashboard</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span className="user-badge">👤 {user}</span>
+              <button onClick={() => { localStorage.clear(); setUser(''); }} className="btn-delete" style={{ padding: '8px 15px' }}>Logout</button>
+            </div>
         </div>
 
-        <div style={{ ...card, marginBottom: 25, borderTop: '4px solid #28a745' }}>
+        {/* CUMULATIVE PROJECT BUDGET BANNER */}
+        <div className="dashboard-card" style={{ marginBottom: 25, borderTop: '4px solid #16a34a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <strong>Project Budget Progress</strong>
-            <strong>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
+            <strong style={{ fontSize: '16px', color: '#0f172a' }}>Project Budget Progress</strong>
+            <strong style={{ color: '#16a34a' }}>{Math.round((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100)}%</strong>
           </div>
-          <div style={progressBg}><div style={{ ...progressBar, width: `${(totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100}%` }} /></div>
-          <div style={{ ...muted, marginTop: 5 }}>Spent: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
+          <div className="progress-bg">
+            <div className="progress-bar" style={{ width: `${Math.min((totalProjectSpent / PROJECT_TOTAL_BUDGET) * 100, 100)}%` }} />
+          </div>
+          <div className="muted" style={{ marginTop: 8 }}>Spent: {formatINR(totalProjectSpent)} / {formatINR(PROJECT_TOTAL_BUDGET)}</div>
         </div>
 
-        <div style={{ display: 'flex', gap: 16, marginBottom: 25 }}>
-          <div style={{ ...card, flex: 1, textAlign: 'center' }}>
-            <div style={muted}>Monthly Budget Spent</div>
+        {/* BALANCED CONFIG ROW: GAUGE & VIEW FILTERS */}
+        <div className="dashboard-row">
+          <div className="dashboard-card metric-item" style={{ textAlign: 'center' }}>
+            <div className="muted">Monthly Budget Spent</div>
             <CircularGauge percent={Math.min(Math.round((currentViewTotal / MONTH_BUDGET) * 100), 100)} />
-            <div style={{ fontWeight: 'bold' }}>{formatINR(currentViewTotal)} / {formatINR(MONTH_BUDGET)}</div>
+            <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{formatINR(currentViewTotal)} / {formatINR(MONTH_BUDGET)}</div>
           </div>
-          <div style={{ ...card, flex: 2 }}>
-            <h3>View Filters</h3>
-            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-              <select style={selectStyle} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+
+          <div className="dashboard-card filters-item">
+            <h3 className="section-title" style={{ marginBottom: 12 }}>View Filters</h3>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <select className="select-style" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                 <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option>
               </select>
-              <select style={selectStyle} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+              <select className="select-style" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                 <option value="">Full Year</option>
                 {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
                   <option key={i} value={(i + 1).toString().padStart(2, '0')}>{m}</option>
                 ))}
               </select>
             </div>
-            <input style={searchInput} placeholder="🔍 Search vendor, material or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input className="search-input" placeholder="🔍 Search vendor, material or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
         </div>
 
+        {/* CONDITIONAL ADD ENTRY GRID INTERFACE */}
         {canEdit && (
-          <div style={{ ...card, marginBottom: 30, background: '#fff', borderLeft: '5px solid #28a745' }}>
-            <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
+          <div className="dashboard-card" style={{ marginBottom: 30, borderLeft: '5px solid #16a34a' }}>
+            <h3 className="section-title">{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
             <div className="form-grid">
               
-              <div style={inputGroup}>
-                <label style={labelStyle}>Date & Year</label>
-                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} style={formInput} />
+              <div className="input-group">
+                <label className="label-style">Date & Year</label>
+                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="form-input" />
               </div>
 
-              <div style={inputGroup}><label style={labelStyle}>Vendor / Payee</label>
-                <input style={formInput} placeholder="Shop/Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
+              <div className="input-group">
+                <label className="label-style">Vendor / Payee</label>
+                <input className="form-input" placeholder="Shop/Supplier Name" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} />
               </div>
               
-              <div style={inputGroup}><label style={labelStyle}>Qty</label>
-                <input style={formInput} placeholder="0" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
+              <div className="input-group">
+                <label className="label-style">Qty</label>
+                <input className="form-input" placeholder="0" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
               </div>
               
-              <div style={inputGroup}><label style={labelStyle}>Unit</label>
-                <select style={formInput} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
+              <div className="input-group">
+                <label className="label-style">Unit</label>
+                <select className="form-input" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
                   <option value="Units" hidden>Units (Default)</option>
                   <option>Ton</option><option>Load</option><option>Bags</option><option>Kg</option><option>CFT</option><option>Sqft</option>
                 </select>
               </div>
 
-              <div style={inputGroup}><label style={labelStyle}>Category</label>
-                <select style={formInput} value={form.category} onChange={e => {
+              <div className="input-group">
+                <label className="label-style">Category</label>
+                <select className="form-input" value={form.category} onChange={e => {
                     const opt = e.target.selectedOptions[0];
-                    setForm({...form, category: e.target.value, group: opt.dataset.group})
+                    setForm({...form, category: e.target.value, group: opt ? opt.dataset.group : ''})
                 }}>
                   <option value="">Select Category</option>
                   {Object.entries(categories).map(([g, items]) => (
@@ -357,121 +343,113 @@ if (!user) {
                   ))}
                 </select>
               </div>
-              <div style={inputGroup}><label style={labelStyle}>Amount</label>
-                <input style={formInput} type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+
+              <div className="input-group">
+                <label className="label-style">Amount</label>
+                <input className="form-input" type="number" placeholder="₹" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
               </div>
-              <div style={{ ...inputGroup, gridColumn: 'span 2' }}><label style={labelStyle}>Notes</label>
-                <input style={formInput} placeholder="Reference details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+
+              <div className="input-group wide-input">
+                <label className="label-style">Notes</label>
+                <input className="form-input" placeholder="Reference details..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
               </div>
-              <div style={{ gridColumn: 'span 3' }}>
-                <label style={labelStyle}>Attach Bill Image</label>
-                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} style={{ display: 'block', marginTop: 5 }} />
+
+              <div className="input-group full-width-input">
+                <label className="label-style">Attach Bill Image</label>
+                <input type="file" onChange={e => setForm({...form, Image: e.target.files[0]})} style={{ display: 'block', marginTop: 8 }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 10 }}>
-                {editing && <button onClick={resetForm} style={{ ...clearBtn, height: '40px' }}>Cancel</button>}
-                <button className="btn-add" style={{ height: '40px', width: '120px' }} onClick={submit}>{editing ? 'Update' : 'Add'}</button>
+
+              <div className="form-actions-row">
+                {editing && <button onClick={resetForm} className="clear-btn">Cancel</button>}
+                <button className="btn-add" style={{ height: '48px', width: '140px', fontSize: '15px' }} onClick={submit}>{editing ? 'Update' : 'Add'}</button>
               </div>
             </div>
           </div>
         )}
 
+        {/* RUNTIME CATEGORY EXPENDITURES DISPLAY */}
         <div style={{ marginBottom: 40 }}>
-          <h3 style={{ marginBottom: 15 }}>Category Wise Expenses</h3>
+          <h3 className="section-title">Category Wise Expenses</h3>
           <div className="category-grid">
             {Object.entries(categorySummary).map(([group, total]) => (
-              <div key={group} style={categoryCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 'bold' }}>{CATEGORY_ICONS[group] || '📦'} {group}</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatINR(total)}</span>
+              <div key={group} className="category-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontWeight: '700', color: '#1e293b' }}>{CATEGORY_ICONS[group] || '📦'} {group}</span>
+                  <span style={{ fontWeight: '700', color: '#0f172a' }}>{formatINR(total)}</span>
                 </div>
-                <div style={categoryProgressBg}>
-                  <div style={{ ...categoryProgressBar, width: `${(total / maxCategorySpent) * 100}%` }} />
+                <div className="cat-progress-bg">
+                  <div className="cat-progress-bar" style={{ width: `${(total / maxCategorySpent) * 100}%` }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={card}>
-          <h3 style={{ marginBottom: 15 }}>Recent Transactions</h3>
-          <table className="expense-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Vendor</th>
-                <th>Qty</th>
-                <th>Unit</th>
-                <th>Amount</th>
-                <th>Notes</th> {/* NEW COLUMN */}
-                <th>Bill</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredExpenses.map(e => (
-                <tr key={e._id}>
-                  <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
-                  <td>
-                      <div style={{ fontSize: '10px', color: '#64748b' }}>{e.group}</div>
-                      <strong>{e.category}</strong>
-                  </td>
-                  <td style={{ color: '#475569' }}>{e.vendor || '—'}</td>
-                  <td>{e.quantity || '0'}</td>
-                  <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
-                  <td><strong>{formatINR(e.amount)}</strong></td>
-                  <td className="notes-column"> {e.notes || '—'} </td>
-                  <td>
-                      {getImageUrl(e.Image) ? 
-                          <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 35, height: 35, cursor: 'pointer', borderRadius: 4, objectFit: 'cover' }} alt="bill" /> 
-                      : '—'}
-                  </td>
-                  <td>
-                    {canEdit && (
-                      <div style={{ display: 'flex', gap: 5 }}>
-                        <button className="btn-add" style={{ padding: '4px 8px' }} onClick={() => {
-                            setEditing(e); 
-                            setForm({...e, date: e.date.split('T')[0], Image: null}); 
-                            window.scrollTo({top: 0, behavior: 'smooth'})
-                        }}>Edit</button>
-                        <button className="btn-delete" style={{ padding: '4px 8px' }} onClick={() => remove(e._id)}>Del</button>
-                      </div>
-                    )}
-                  </td>
+        {/* LOGGED TRANSACTIONS METRICS LEDGER */}
+        <div className="dashboard-card" style={{ padding: '10px 0px' }}>
+          <h3 className="section-title" style={{ padding: '14px 24px 4px' }}>Recent Transactions</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="expense-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Vendor</th>
+                  <th>Qty</th>
+                  <th>Unit</th>
+                  <th>Amount</th>
+                  <th>Notes</th>
+                  <th>Bill</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredExpenses.map(e => (
+                  <tr key={e._id}>
+                    <td>{new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
+                    <td>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{e.group}</div>
+                        <strong style={{ color: '#0f172a' }}>{e.category}</strong>
+                    </td>
+                    <td style={{ color: '#475569', fontWeight: '500' }}>{e.vendor || '—'}</td>
+                    <td>{e.quantity || '0'}</td>
+                    <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
+                    <td><strong style={{ color: '#0f172a' }}>{formatINR(e.amount)}</strong></td>
+                    <td style={{ color: '#64748b', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}> {e.notes || '—'} </td>
+                    <td>
+                        {getImageUrl(e.Image) ? 
+                            <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 40, height: 40, cursor: 'pointer', borderRadius: 8, objectFit: 'cover', border: '1px solid #e2e8f0' }} alt="bill" /> 
+                        : '—'}
+                    </td>
+                    <td>
+                      {canEdit && (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="btn-add" style={{ padding: '6px 12px', fontSize: '13px' }} onClick={() => {
+                              setEditing(e); 
+                              setForm({...e, date: e.date ? e.date.split('T')[0] : getToday(), Image: null}); 
+                              window.scrollTo({top: 0, behavior: 'smooth'})
+                          }}>Edit</button>
+                          <button className="btn-delete" style={{ padding: '6px 12px', fontSize: '13px' }} onClick={() => remove(e._id)}>Del</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {previewImage && <div style={overlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={previewImg} alt="Preview" /></div>}
+        {/* BILL PREVIEW FULL OVERLAY MODAL */}
+        {previewImage && <div className="overlay-view" onClick={() => setPreviewImage(null)}><img src={previewImage} className="preview-img-tag" alt="Preview" /></div>}
       </div>
     </div>
   );
 }
 
-
-const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
-const card = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' };
-const inputGroup = { display: 'flex', flexDirection: 'column', gap: '5px' };
-const labelStyle = { fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' };
-const muted = { fontSize: 12, color: '#777' };
-const progressBg = { height: 8, background: '#e9ecef', borderRadius: 10, marginTop: 10 };
-const progressBar = { height: '100%', background: '#28a745', borderRadius: 10 };
-const searchInput = { padding: '12px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none', width: '100%', marginTop: '10px' };
-const selectStyle = { flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' };
-const formInput = { padding: '10px', borderRadius: '4px', border: '1px solid #ddd', width: '100%' };
-const clearBtn = { padding: '5px 15px', background: '#eee', border: 'none', borderRadius: 4, cursor: 'pointer' };
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const previewImg = { maxWidth: '90%', maxHeight: '90%', borderRadius: 8 };
-
-const categoryCard = { background: 'white', padding: '15px 20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #f0f0f0' };
-const categoryProgressBg = { height: '6px', background: '#e9ecef', borderRadius: '10px', overflow: 'hidden' };
-const categoryProgressBar = { height: '100%', background: '#28a745', borderRadius: '10px', transition: 'width 0.4s ease' };
-
 const CircularGauge = ({ percent }) => (
-  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `conic-gradient(#28a745 ${percent}%, #e9ecef 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '10px auto' }}>
-    <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{percent}%</div>
+  <div style={{ width: 100, height: 100, borderRadius: '50%', background: `conic-gradient(#16a34a ${percent}%, #f1f5f9 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '16px auto' }}>
+    <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '16px', color: '#0f172a' }}>{percent}%</div>
   </div>
 );
 
