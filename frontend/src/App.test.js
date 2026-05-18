@@ -4,12 +4,18 @@ import App from './App';
 
 describe('BuildNest Application', () => {
 
-  test('renders login screen', () => {
+  test('renders brand title', () => {
     render(<App />);
 
     expect(
-      screen.getByText(/BuildNest/i)
+      screen.getByRole('heading', {
+        name: /BuildNest/i
+      })
     ).toBeInTheDocument();
+  });
+
+  test('renders dashboard subtitle', () => {
+    render(<App />);
 
     expect(
       screen.getByText(/Smart Construction Dashboard/i)
