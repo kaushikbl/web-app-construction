@@ -148,17 +148,137 @@ function App() {
 
   const maxCategorySpent = Math.max(...Object.values(categorySummary), 1);
 
-  if (!user) {
-    return (
-      <div style={loginOverlay}>
-        <div style={loginCard}>
-          <h2>Login to BuildNest</h2>
-          <input style={loginInput} placeholder="Your Name" value={loginName} onChange={(e) => setLoginName(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && loginName && setUser(loginName)} />
-          <button style={loginBtn} onClick={() => { if(loginName) { localStorage.setItem('user', loginName); setUser(loginName); }}}>Enter</button>
+if (!user) {
+  return (
+    <div className="modern-login-wrapper">
+
+      <div className="left-panel">
+        <div>
+
+          <div className="brand-section">
+            <div className="logo-box">🏗️</div>
+
+            <div>
+              <h1 className="brand-title">BuildNest</h1>
+
+              <p className="brand-sub">
+                Smart Construction Dashboard
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 80 }}>
+
+            <h1 className="hero-title">
+              Build Better.
+              <br />
+              Track <span style={{ color: '#f59e0b' }}>Smarter.</span>
+            </h1>
+
+            <p className="hero-text">
+              Monitor budgets, expenses, vendors
+              and construction progress in real time.
+            </p>
+
+            <div style={{ marginTop: 50 }}>
+
+              <div className="feature-item">
+                <div className="feature-icon">📊</div>
+
+                <div>
+                  <div className="feature-title">
+                    Real-time Insights
+                  </div>
+
+                  <div className="feature-desc">
+                    Track every rupee instantly
+                  </div>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <div className="feature-icon">🏗️</div>
+
+                <div>
+                  <div className="feature-title">
+                    Smart Tracking
+                  </div>
+
+                  <div className="feature-desc">
+                    Manage vendors and materials
+                  </div>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <div className="feature-icon">🔒</div>
+
+                <div>
+                  <div className="feature-title">
+                    Secure Access
+                  </div>
+
+                  <div className="feature-desc">
+                    Protected project dashboard
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
-    );
-  }
+
+      <div className="right-panel">
+
+        <div className="login-modern-card">
+
+          <div className="login-logo">🏠</div>
+
+          <h1 className="welcome-title">
+            Welcome Back
+          </h1>
+
+          <p className="welcome-sub">
+            Login to your BuildNest account
+          </p>
+
+          <input
+            className="modern-input"
+            placeholder="Enter your name"
+            value={loginName}
+            onChange={(e) => setLoginName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && loginName.trim()) {
+                localStorage.setItem('user', loginName);
+                setUser(loginName);
+              }
+            }}
+          />
+
+          <button
+            className="modern-login-btn"
+            onClick={() => {
+              if (loginName.trim()) {
+                localStorage.setItem('user', loginName);
+                setUser(loginName);
+              }
+            }}
+          >
+            Enter Dashboard →
+          </button>
+
+          <div className="secure-box">
+            🔐 Secure access to your construction dashboard
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
   return (
     <div style={mainBg}>
@@ -330,11 +450,8 @@ function App() {
   );
 }
 
+
 const mainBg = { backgroundColor: '#f4f7f9', minHeight: '100vh', paddingBottom: '60px' };
-const loginOverlay = { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2c3e50' };
-const loginCard = { background: 'white', padding: '40px', borderRadius: '15px', textAlign: 'center' };
-const loginInput = { width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '8px', border: '1px solid #ddd' };
-const loginBtn = { width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' };
 const card = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' };
 const inputGroup = { display: 'flex', flexDirection: 'column', gap: '5px' };
 const labelStyle = { fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' };
