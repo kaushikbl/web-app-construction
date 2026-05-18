@@ -282,10 +282,10 @@ if (!user) {
 
   return (
     <div style={mainBg}>
-      <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+      <div className="container">
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h1>Expense Dashboard</h1>
+            <h1 style={{ fontSize: '38px', fontWeight: '800', margin: 0, color: '#0f172a' }}> Expense Dashboard </h1>
             <button onClick={() => { localStorage.clear(); setUser(''); }} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 5, cursor: 'pointer' }}>Logout</button>
         </div>
 
@@ -324,7 +324,7 @@ if (!user) {
         {canEdit && (
           <div style={{ ...card, marginBottom: 30, background: '#fff', borderLeft: '5px solid #28a745' }}>
             <h3>{editing ? '📝 Edit Entry' : '➕ Add Expense'}</h3>
-            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginTop: 15 }}>
+            <div className="form-grid">
               
               <div style={inputGroup}>
                 <label style={labelStyle}>Date & Year</label>
@@ -377,7 +377,7 @@ if (!user) {
 
         <div style={{ marginBottom: 40 }}>
           <h3 style={{ marginBottom: 15 }}>Category Wise Expenses</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="category-grid">
             {Object.entries(categorySummary).map(([group, total]) => (
               <div key={group} style={categoryCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -394,7 +394,7 @@ if (!user) {
 
         <div style={card}>
           <h3 style={{ marginBottom: 15 }}>Recent Transactions</h3>
-          <table className="expense-table" style={{ width: '100%' }}>
+          <table className="expense-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -420,7 +420,7 @@ if (!user) {
                   <td>{e.quantity || '0'}</td>
                   <td style={{ color: '#64748b' }}>{e.unit || '—'}</td>
                   <td><strong>{formatINR(e.amount)}</strong></td>
-                  <td style={{ color: '#64748b', fontSize: '12px', maxWidth: '150px' }}>{e.notes || '—'}</td> {/* CLEAN NOTES STYLE */}
+                  <td className="notes-column"> {e.notes || '—'} </td>
                   <td>
                       {getImageUrl(e.Image) ? 
                           <img src={getImageUrl(e.Image)} onClick={() => setPreviewImage(getImageUrl(e.Image))} style={{ width: 35, height: 35, cursor: 'pointer', borderRadius: 4, objectFit: 'cover' }} alt="bill" /> 

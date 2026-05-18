@@ -1,7 +1,7 @@
 body {
   margin: 0;
   font-family: Inter, sans-serif;
-  background: #081120;
+  background: #f1f5f9;
 }
 
 * {
@@ -201,16 +201,15 @@ body {
   .login-modern-card {
     padding: 30px;
   }
+}
 
+/* DASHBOARD LAYOUT */
 .container {
   max-width: 1400px !important;
   margin: auto;
   padding: 30px !important;
 }
 
-body {
-  background: #f1f5f9;
-}
 
 /* GLOBAL CARD */
 .dashboard-card {
@@ -284,4 +283,14 @@ body {
   transition: 0.2s ease;
 }
 
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .category-grid {
+    grid-template-columns: 1fr;
+  }
 }
