@@ -994,6 +994,55 @@ body {
 
   }
 
+/* Feedback UI for Loading and Errors */
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+.error-banner {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  color: #991b1b;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* Action Buttons in the Ledger Table */
+.action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.text-red {
+  color: #ef4444 !important;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.text-red:hover {
+  text-decoration: underline;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Ensure the header actions align with your brand style */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}  
+
 }
 
 
