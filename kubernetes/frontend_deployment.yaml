@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: kaushikbl/frontend:94
+          image: kaushikbl/frontend:95
           resources:
             requests:
               cpu: "100m"
