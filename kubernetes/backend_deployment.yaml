@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: kaushikbl/backend:94
+          image: kaushikbl/backend:96
           resources:
             requests:
               cpu: "100m"
