@@ -2,80 +2,161 @@ pipeline {
     agent any
     
     environment {
-        REGISTRY_CREDENTIALS = 'docker-cred'
         DOCKER_USER = 'kaushikbl'
-        FRONTEND_IMAGE = 'frontend'
         BACKEND_IMAGE = 'backend'
-        MONGO_IMAGE = 'mongo'
-        AWS_REGION = 'us-east-2' 
-        EKS_CLUSTER = 'my-eks-cluster' 
+        FRONTEND_IMAGE = 'frontend'
+        SCANNER_HOME = tool 'sonar-scanner'
     }
-
-    stages {
-        stage('git checkout') {
-            steps {
-                git branch: 'dev', url: 'https://github.com/kaushikbl/web-app-construction.git'           }
-        }
     
-        stage('Install frontend dependencies') {
+    stages {
+        stage('git clone') {
+            steps {
+                git branch: 'main', url: 'https://github.com/kaushikbl/web-app-construction.git'
+            }
+        }
+        
+        stage('Frontend install dependencies') {
             steps {
                 dir('frontend') {
-                   sh "npm install"
-
+                    sh 'npm install'
+                }
             }
         }
-    }
-    
-        stage('Install Backend dependencies') {
+        
+        stage('Backend install dependencies') {
             steps {
                 dir('backend') {
-                   sh "npm install"
-            }
-        }
-    }
-        
-        stage("Docker Build & Push - Frontend") {
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker-cred') {
-                       buildNumber = "${BUILD_NUMBER}"
-                       dir('frontend') {
-                       sh "docker build -t ${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber} ."
-                       sh "docker push ${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}"
+                    sh 'npm install'
                 }
             }
         }
-      }    
-    }
         
-        stage("Docker Build & Push - Backend") {
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker-cred') {
-                       buildNumber = "${BUILD_NUMBER}"
-                       dir('backend') {
-                       sh "docker build -t ${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber} ."
-                       sh "docker push ${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}"
+        /*
+        stage('frontend Unit Test') {
+            steps {
+                dir('frontend') {
+                  sh 'npm install'
+                  sh 'npm test'
                 }
             }
         }
-      }    
-    }
+        
+        stage('Backend Unit Test') {
+            steps {
+                 dir('backend') {
+                   sh 'npm install'
+                   sh 'npm test -- --watchAll=false'
+                 }
+            }
+        }
+        
+        stage('SonarQube Scan') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=web-app-construction -Dsonar.projectName=web-app-construction -Dsonar.javascript.node.maxspace=4096"
+                }
+            }
+        }
+        
+        stage('Quality Gate') {
+            steps {
+                 timeout(time: 1, unit: 'MINUTES') {
+                 waitForQualityGate abortPipeline: false
+                }
+            }
+        }
 
-        stage("Deploy to EKS") {
-           steps {
-              withAWS(credentials: 'aws-cred', region: 'us-east-2') {
-                      sh """
-                       aws sts get-caller-identity
-                       aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
-                       kubectl apply -f k8s
-                       kubectl set image deployment/frontend frontend=${DOCKER_USER}/${FRONTEND_IMAGE}:${buildNumber}
-                       kubectl set image deployment/backend backend=${DOCKER_USER}/${BACKEND_IMAGE}:${buildNumber}
-                       kubectl rollout status deployment/frontend
-                       kubectl rollout status deployment/backend
-                       """
-                       }
+        stage('quality gates') {
+            steps {
+               timeout(time: 2, unit: 'MINUTES') {
+                   script {
+                       def qg = waitForQualityGate()
+                       
+                    if (qg.status != 'OK') {
+                    error "Quality Gate Failed: ${qg.status}"
+                }
+                  echo "Quality Gate Passed"
                    }
+                }
+            }
+        }
+        
+           Why npm run Build Before Docker?
+           acts like validation before dockerization
+           Because CI pipeline should validate application FIRST.
+           syntax errors,React build errors,missing packages,TypeScript errors,lint issues.
+           Otherwise broken images get created,wasted build time and bad deployments.
+    
+        
+        stage('app validation Build') {                
+           steps {                                
+               dir('frontend') {                  
+                   sh 'npm run build'             
                }
            }
+        }
+    */
+        stage('Docker Build - Frontend') {
+            steps {
+                dir('frontend') {
+                  sh "docker build -t ${DOCKER_USER}/${FRONTEND_IMAGE}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+        
+        stage('Docker Build - Backend') { 
+            steps {
+                dir('backend') {
+                  sh "docker build -t ${DOCKER_USER}/${BACKEND_IMAGE}:${BUILD_NUMBER} ."
+                }
+            }
+        } 
+        /*
+        stage('Trivy Image scan') {
+            steps {
+                //Usually pipelines fails in PRODUCTION for crirtical vulnerabilities 
+                //sh "trivy image --exit-code 1 --severity CRITICAL,HIGH ${DOCKER_USER}/${FRONTEND_IMAGE}:${BUILD_NUMBER}"
+                
+                sh "trivy image ${DOCKER_USER}/${FRONTEND_IMAGE}:${BUILD_NUMBER}"
+                sh "trivy image ${DOCKER_USER}/${BACKEND_IMAGE}:${BUILD_NUMBER}"
+            }
+        }
+      */
+        stage('Docker push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-jenkins') {
+                       sh "docker push ${DOCKER_USER}/${FRONTEND_IMAGE}:${BUILD_NUMBER}"
+                       sh "docker push ${DOCKER_USER}/${BACKEND_IMAGE}:${BUILD_NUMBER}"
+                    }   
+                }       
+            }
+        }
+        
+        stage('Update Kubernetes Manifests') {
+            steps {
+                
+                withCredentials([gitUsernamePassword(credentialsId: 'github_pass', gitToolName: 'Default')]) {
+                
+                sh """
+                  sed -i 's|image:.*|image: kaushikbl/frontend:${BUILD_NUMBER}|g' kubernetes/frontend_deployment.yaml
+                  sed -i 's|image:.*|image: kaushikbl/backend:${BUILD_NUMBER}|g' kubernetes/backend_deployment.yaml
+                  
+
+                  git config user.email "kaushikbl@github.com"
+                  git config user.name "kaushikbl"
+
+                  git add kubernetes/frontend_deployment.yaml
+                  git add kubernetes/backend_deployment.yaml
+                  
+                  git commit -m "Updated image tag to ${BUILD_NUMBER}"
+                  
+                  git pull origin main --rebase
+                  
+                  git push origin main
+                """
+          }
+        }
+       }
+    }
 }
